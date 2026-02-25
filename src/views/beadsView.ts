@@ -8,14 +8,23 @@ import { GtClient, GtBead } from '../gtClient';
 
 export type BeadFilterMode = 'active' | 'all';
 
-const SYSTEM_ISSUE_TYPES = new Set(['agent', 'molecule', 'gate', 'rig', 'wisp']);
+const SYSTEM_ISSUE_TYPES = new Set(['agent', 'molecule', 'gate', 'rig', 'wisp', 'convoy', 'event']);
 const COMPLETED_STATUSES = new Set(['completed', 'done', 'closed']);
+
+const SYSTEM_TAGS = new Set(['gt:rig', 'gt:agent']);
 
 function isSystemBead(bead: GtBead): boolean {
 	if (bead.issue_type && SYSTEM_ISSUE_TYPES.has(bead.issue_type)) {
 		return true;
 	}
+	if (bead.tags?.some(t => SYSTEM_TAGS.has(t))) {
+		return true;
+	}
 	return /\bwisp-/.test(bead.id) || /\bmol-/.test(bead.id);
+}
+
+function isHqBead(bead: GtBead): boolean {
+	return bead.id.startsWith('hq-');
 }
 
 function isCompletedBead(bead: GtBead): boolean {
@@ -78,6 +87,9 @@ export class BeadsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIte
 		const system: GtBead[] = [];
 
 		for (const bead of beads) {
+			if (isHqBead(bead)) {
+				continue;
+			}
 			if (this._filterMode === 'active' && isCompletedBead(bead)) {
 				continue;
 			}
