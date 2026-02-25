@@ -123,7 +123,7 @@ export class TerminalManager {
 		}
 	}
 
-	openAgentTerminal(agent: GtAgent): vscode.Terminal {
+	openAgentTerminal(agent: GtAgent, viewColumn?: vscode.ViewColumn, preserveFocus = false): vscode.Terminal {
 		const existing = this.agentTerminals.get(agent.name);
 		if (existing) {
 			existing.show();
@@ -145,6 +145,9 @@ export class TerminalManager {
 			iconPath: this.getIconForRole(agent.role),
 			color: this.getColorForRig(agent.rig),
 			env: this.client.getClaudeEnv(),
+			location: viewColumn !== undefined
+				? { viewColumn }
+				: vscode.TerminalLocation.Editor,
 		});
 
 		if (agent.session) {
@@ -190,7 +193,7 @@ export class TerminalManager {
 
 		this._onDidTerminalCountChange.fire(this.terminalStates.size);
 		this.persistLayout();
-		terminal.show();
+		terminal.show(preserveFocus);
 		return terminal;
 	}
 
@@ -297,6 +300,7 @@ export class TerminalManager {
 			iconPath: this.getIconForStatus(agent.role, agent.displayStatus),
 			color: this.getColorForRig(agent.rig),
 			env: this.client.getClaudeEnv(),
+			location: vscode.TerminalLocation.Editor,
 		});
 
 		// Re-attach to tmux if the session is still alive
@@ -600,6 +604,7 @@ export class TerminalManager {
 			iconPath: new vscode.ThemeIcon('account'),
 			color: new vscode.ThemeColor('terminal.ansiYellow'),
 			env: claudeEnv,
+			location: vscode.TerminalLocation.Editor,
 		});
 
 		terminal.sendText(
@@ -710,7 +715,7 @@ export class TerminalManager {
 	 */
 	async openAllAgentTerminals(): Promise<number> {
 		const agents = await this.client.getAgents();
-		let opened = 0;
+		const toOpen: GtAgent[] = [];
 
 		for (const agent of agents) {
 			if (INFRASTRUCTURE_ROLES.has(agent.role)) {
@@ -722,16 +727,30 @@ export class TerminalManager {
 			if (this.agentTerminals.has(agent.name)) {
 				continue;
 			}
+			toOpen.push(agent);
+		}
 
-			this.openAgentTerminal(agent);
-			opened++;
+		if (toOpen.length === 0) {
+			this.output.appendLine(
+				`[${new Date().toISOString()}] openAllAgentTerminals: no new terminals to open`,
+			);
+			return 0;
+		}
+
+		const totalCount = this.terminalStates.size + toOpen.length;
+		await this.setEditorGridLayout(totalCount);
+
+		for (const agent of toOpen) {
+			const slot = this.terminalStates.size;
+			const viewColumn = this.slotToViewColumn(slot);
+			this.openAgentTerminal(agent, viewColumn, true);
 		}
 
 		this.output.appendLine(
-			`[${new Date().toISOString()}] openAllAgentTerminals: opened ${opened} new terminals`,
+			`[${new Date().toISOString()}] openAllAgentTerminals: opened ${toOpen.length} new terminals in grid`,
 		);
 
-		return opened;
+		return toOpen.length;
 	}
 
 	/**
@@ -744,7 +763,7 @@ export class TerminalManager {
 		}
 
 		if (this.terminalStates.size > 0) {
-			vscode.commands.executeCommand('battlestation.showOverview');
+			await this.setEditorGridLayout(this.terminalStates.size);
 		} else {
 			vscode.window.showInformationMessage('No running agents to display in the battlestation.');
 		}
@@ -864,6 +883,52 @@ export class TerminalManager {
 		}
 
 		return restored;
+	}
+
+	/**
+	 * Set the editor area grid layout based on the terminal count.
+	 * Arranges editor groups so terminals display in a responsive grid.
+	 */
+	async setEditorGridLayout(count: number): Promise<void> {
+		if (count <= 0) {
+			return;
+		}
+		const layout = this.computeGridLayout(count);
+		await vscode.commands.executeCommand('vscode.setEditorLayout', layout);
+	}
+
+	/**
+	 * Compute the optimal grid layout for the given number of terminals.
+	 * Returns a layout descriptor compatible with vscode.setEditorLayout.
+	 */
+	private computeGridLayout(count: number): { orientation: number; groups: object[] } {
+		if (count <= 1) {
+			return { orientation: 0, groups: [{}] };
+		}
+		if (count <= 3) {
+			const groups = Array.from({ length: count }, () => ({}));
+			return { orientation: 0, groups };
+		}
+
+		// Grid: compute rows and columns
+		const cols = Math.min(Math.ceil(Math.sqrt(count)), 3);
+		const rows = Math.ceil(count / cols);
+
+		const rowGroups: object[] = [];
+		for (let r = 0; r < rows; r++) {
+			const colCount = Math.min(cols, count - r * cols);
+			const colGroups = Array.from({ length: colCount }, () => ({}));
+			rowGroups.push({ groups: colGroups, size: 1 / rows });
+		}
+
+		return { orientation: 1, groups: rowGroups };
+	}
+
+	/**
+	 * Map a grid slot index to a VS Code ViewColumn for editor placement.
+	 */
+	private slotToViewColumn(slot: number): vscode.ViewColumn {
+		return Math.min(slot + 1, 9) as vscode.ViewColumn;
 	}
 
 	dispose(): void {

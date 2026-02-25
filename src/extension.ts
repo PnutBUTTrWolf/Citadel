@@ -21,7 +21,6 @@ import { createBead, showBeadDetails, deleteBead } from './commands/bead';
 import { createConvoy, showConvoyDetails } from './commands/convoy';
 import { detachMayor } from './commands/mayor';
 import { showMailMessage, composeMail } from './commands/mail';
-import { BattlestationPanel } from './views/battlestationView';
 
 export function activate(context: vscode.ExtensionContext): void {
 	console.log('[Citadel] Extension activating in extension host (pid ' + process.pid + ')');
@@ -478,15 +477,8 @@ export function activate(context: vscode.ExtensionContext): void {
 			}
 		}),
 		vscode.commands.registerCommand('citadel.showBattlestation', async () => {
-			// Ensure terminals are open before showing the grid panel
-			if (terminalManager.terminalCount === 0) {
-				await terminalManager.openAllAgentTerminals();
-			}
-			if (terminalManager.terminalCount > 0) {
-				BattlestationPanel.createOrShow(context.extensionUri, terminalManager);
-			} else {
-				vscode.window.showInformationMessage('No running agents to display in the battlestation.');
-			}
+			// Open agent terminals in editor area grid layout
+			await terminalManager.showBattlestation();
 		}),
 		vscode.commands.registerCommand('citadel.openAllAgentTerminals', () => terminalManager.openAllAgentTerminals()),
 		vscode.commands.registerCommand('citadel.refreshMayor', () => mayorProvider.refreshFromCli()),
@@ -494,19 +486,10 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand('citadel.refreshWatchdog', () => watchdogProvider.refresh()),
 	);
 
-	// --- Cross-panel wiring: terminal count → status bar, auto-open battlestation ---
+	// --- Cross-panel wiring: terminal count → status bar ---
 	context.subscriptions.push(
 		terminalManager.onDidTerminalCountChange((count) => {
 			statusBar.setTerminalCount(count);
-
-			// Auto-open battlestation when first terminal appears (if configured)
-			if (count > 0 && !BattlestationPanel.current) {
-				const autoOpen = vscode.workspace.getConfiguration('citadel')
-					.get<boolean>('battlestation.autoOpen', false);
-				if (autoOpen) {
-					BattlestationPanel.createOrShow(context.extensionUri, terminalManager);
-				}
-			}
 		}),
 	);
 
@@ -586,13 +569,6 @@ export function activate(context: vscode.ExtensionContext): void {
 		if (restored > 0) {
 			outputChannel.appendLine(`[Citadel] Restored ${restored} terminal(s) from previous session`);
 			statusBar.setTerminalCount(terminalManager.terminalCount);
-
-			// Auto-open battlestation panel if terminals were restored
-			const autoOpen = vscode.workspace.getConfiguration('citadel')
-				.get<boolean>('battlestation.autoOpen', false);
-			if (autoOpen) {
-				BattlestationPanel.createOrShow(context.extensionUri, terminalManager);
-			}
 		}
 	});
 }

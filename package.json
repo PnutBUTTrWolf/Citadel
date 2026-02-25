@@ -57,12 +57,6 @@
           "visibility": "collapsed"
         },
         {
-          "id": "citadel.mayor",
-          "name": "Mayor",
-          "icon": "$(account)",
-          "contextualTitle": "Citadel Mayor"
-        },
-        {
           "id": "citadel.health",
           "name": "Health",
           "icon": "$(pulse)",
@@ -100,6 +94,12 @@
           "name": "Convoys",
           "icon": "$(tasklist)",
           "contextualTitle": "Citadel Convoys"
+        },
+        {
+          "id": "citadel.mayor",
+          "name": "Mayor",
+          "icon": "$(account)",
+          "contextualTitle": "Citadel Mayor"
         }
       ]
     },
