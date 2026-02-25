@@ -1,0 +1,828 @@
+{
+  "name": "citadel",
+  "displayName": "Citadel - Multi-Agent Orchestration",
+  "description": "Citadel agent management and orchestration for Citadel",
+  "version": "0.2.0",
+  "publisher": "citadel",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./out/extension",
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "virtualWorkspaces": false,
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "citadel",
+          "icon": "$(flame)",
+          "title": "Citadel"
+        }
+      ],
+      "secondarySidebar": [
+        {
+          "id": "citadel-work",
+          "icon": "$(tasklist)",
+          "title": "Work"
+        }
+      ]
+    },
+    "views": {
+      "citadel": [
+        {
+          "id": "citadel.agents",
+          "name": "Agents",
+          "icon": "$(person)",
+          "contextualTitle": "Citadel Agents"
+        },
+        {
+          "id": "citadel.rigs",
+          "name": "Rigs & Hooks",
+          "icon": "$(repo)",
+          "contextualTitle": "Citadel Rigs",
+          "visibility": "collapsed"
+        },
+        {
+          "id": "citadel.mayor",
+          "name": "Mayor",
+          "icon": "$(account)",
+          "contextualTitle": "Citadel Mayor"
+        },
+        {
+          "id": "citadel.health",
+          "name": "Health",
+          "icon": "$(pulse)",
+          "contextualTitle": "Citadel Health"
+        },
+        {
+          "id": "citadel.watchdog",
+          "name": "Watchdog",
+          "icon": "$(shield)",
+          "contextualTitle": "Citadel Watchdog",
+          "visibility": "collapsed"
+        }
+      ],
+      "citadel-work": [
+        {
+          "id": "citadel.mail",
+          "name": "Mail",
+          "icon": "$(mail)",
+          "contextualTitle": "Citadel Mail"
+        },
+        {
+          "id": "citadel.queue",
+          "name": "Merge Queue",
+          "icon": "$(git-merge)",
+          "contextualTitle": "Citadel Merge Queue"
+        },
+        {
+          "id": "citadel.escalations",
+          "name": "Escalations",
+          "icon": "$(warning)",
+          "contextualTitle": "Citadel Escalations"
+        },
+        {
+          "id": "citadel.workflows",
+          "name": "Workflows",
+          "icon": "$(beaker)",
+          "contextualTitle": "Citadel Workflows"
+        },
+        {
+          "id": "citadel.activity",
+          "name": "Activity",
+          "icon": "$(history)",
+          "contextualTitle": "Citadel Activity"
+        },
+        {
+          "id": "citadel.beads",
+          "name": "Beads",
+          "icon": "$(circle-outline)",
+          "contextualTitle": "Citadel Beads"
+        },
+        {
+          "id": "citadel.convoys",
+          "name": "Convoys",
+          "icon": "$(tasklist)",
+          "contextualTitle": "Citadel Convoys"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "citadel.refreshAgents",
+        "title": "Refresh Agents",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.refreshConvoys",
+        "title": "Refresh Convoys",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.refreshRigs",
+        "title": "Refresh Rigs",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.createBead",
+        "title": "Create Bead",
+        "category": "Citadel",
+        "icon": "$(add)"
+      },
+      {
+        "command": "citadel.showBead",
+        "title": "Show Bead Details",
+        "category": "Citadel",
+        "icon": "$(info)"
+      },
+      {
+        "command": "citadel.deleteBead",
+        "title": "Delete Bead",
+        "category": "Citadel",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "citadel.refreshBeads",
+        "title": "Refresh Beads",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.filterBeads",
+        "title": "Toggle Beads Filter",
+        "category": "Citadel",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "citadel.slingBead",
+        "title": "Sling Bead to Agent",
+        "category": "Citadel",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "citadel.createConvoy",
+        "title": "Create Convoy",
+        "category": "Citadel",
+        "icon": "$(add)"
+      },
+      {
+        "command": "citadel.attachMayor",
+        "title": "Attach Mayor",
+        "category": "Citadel",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "citadel.detachMayor",
+        "title": "Stop Mayor",
+        "category": "Citadel",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "citadel.addRig",
+        "title": "Add Rig",
+        "category": "Citadel",
+        "icon": "$(add)"
+      },
+      {
+        "command": "citadel.openAgentTerminal",
+        "title": "Open Agent Terminal",
+        "category": "Citadel",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "citadel.convoyShow",
+        "title": "Show Convoy Details",
+        "category": "Citadel",
+        "icon": "$(info)"
+      },
+      {
+        "command": "citadel.spawnAgent",
+        "title": "Spawn Agent",
+        "category": "Citadel",
+        "icon": "$(run)"
+      },
+      {
+        "command": "citadel.killAgent",
+        "title": "Kill Agent",
+        "category": "Citadel",
+        "icon": "$(close)"
+      },
+      {
+        "command": "citadel.restartAgent",
+        "title": "Restart Agent",
+        "category": "Citadel",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "citadel.showMayorTerminal",
+        "title": "Show Mayor Terminal",
+        "category": "Citadel",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "citadel.openDashboard",
+        "title": "Open Dashboard",
+        "category": "Citadel",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "citadel.runBootstrap",
+        "title": "Run Bootstrap Setup",
+        "category": "Citadel",
+        "icon": "$(wrench)"
+      },
+      {
+        "command": "citadel.configureClaudeProvider",
+        "title": "Configure Claude Provider",
+        "category": "Citadel",
+        "icon": "$(cloud)"
+      },
+      {
+        "command": "citadel.debugAgents",
+        "title": "Debug Agents",
+        "category": "Citadel",
+        "icon": "$(bug)"
+      },
+      {
+        "command": "citadel.repairDaemon",
+        "title": "Repair Daemon",
+        "category": "Citadel",
+        "icon": "$(wrench)"
+      },
+      {
+        "command": "citadel.daemonStatus",
+        "title": "Daemon Status",
+        "category": "Citadel",
+        "icon": "$(pulse)"
+      },
+      {
+        "command": "citadel.refreshMail",
+        "title": "Refresh Mail",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.showMail",
+        "title": "Show Mail",
+        "category": "Citadel",
+        "icon": "$(mail)"
+      },
+      {
+        "command": "citadel.composeMail",
+        "title": "Compose Mail",
+        "category": "Citadel",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "citadel.refreshQueue",
+        "title": "Refresh Merge Queue",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.retryMergeRequest",
+        "title": "Retry Merge Request",
+        "category": "Citadel",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "citadel.rejectMergeRequest",
+        "title": "Reject Merge Request",
+        "category": "Citadel",
+        "icon": "$(close)"
+      },
+      {
+        "command": "citadel.showMergeRequestStatus",
+        "title": "Show Merge Request Status",
+        "category": "Citadel",
+        "icon": "$(info)"
+      },
+      {
+        "command": "citadel.nudgeRefinery",
+        "title": "Nudge Refinery",
+        "category": "Citadel",
+        "icon": "$(run)"
+      },
+      {
+        "command": "citadel.refreshEscalations",
+        "title": "Refresh Escalations",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.resolveEscalation",
+        "title": "Resolve Escalation",
+        "category": "Citadel",
+        "icon": "$(check)"
+      },
+      {
+        "command": "citadel.refreshWorkflows",
+        "title": "Refresh Workflows",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.cookWorkflow",
+        "title": "Cook Workflow",
+        "category": "Citadel",
+        "icon": "$(play)"
+      },
+      {
+        "command": "citadel.pourWorkflow",
+        "title": "Pour Workflow",
+        "category": "Citadel",
+        "icon": "$(run)"
+      },
+      {
+        "command": "citadel.refreshMayor",
+        "title": "Refresh Mayor",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.refreshHealth",
+        "title": "Refresh Health",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.refreshWatchdog",
+        "title": "Refresh Watchdog",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.refreshActivity",
+        "title": "Refresh Activity",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.reconnectTerminal",
+        "title": "Reconnect Agent Terminal",
+        "category": "Citadel",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "citadel.openBeadTerminal",
+        "title": "Open Agent Terminal",
+        "category": "Citadel",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "citadel.openEscalationTerminal",
+        "title": "Open Agent Terminal",
+        "category": "Citadel",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "citadel.showBattlestation",
+        "title": "Show Battlestation",
+        "category": "Citadel",
+        "icon": "$(layout)"
+      },
+      {
+        "command": "citadel.openAllAgentTerminals",
+        "title": "Open All Agent Terminals",
+        "category": "Citadel",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "citadel.statusBarClick",
+        "title": "Citadel Status",
+        "category": "Citadel",
+        "icon": "$(flame)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "citadel.refreshAgents",
+          "when": "view == citadel.agents",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.showBattlestation",
+          "when": "view == citadel.agents",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.spawnAgent",
+          "when": "view == citadel.agents",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.runBootstrap",
+          "when": "view == citadel.agents",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.repairDaemon",
+          "when": "view == citadel.agents",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.refreshBeads",
+          "when": "view == citadel.beads",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.filterBeads",
+          "when": "view == citadel.beads",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.createBead",
+          "when": "view == citadel.beads",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.refreshConvoys",
+          "when": "view == citadel.convoys",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.createConvoy",
+          "when": "view == citadel.convoys",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.refreshRigs",
+          "when": "view == citadel.rigs",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.addRig",
+          "when": "view == citadel.rigs",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.refreshMail",
+          "when": "view == citadel.mail",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.composeMail",
+          "when": "view == citadel.mail",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.refreshQueue",
+          "when": "view == citadel.queue",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.nudgeRefinery",
+          "when": "view == citadel.queue",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.refreshEscalations",
+          "when": "view == citadel.escalations",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.refreshWorkflows",
+          "when": "view == citadel.workflows",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.cookWorkflow",
+          "when": "view == citadel.workflows",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.refreshMayor",
+          "when": "view == citadel.mayor",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.attachMayor",
+          "when": "view == citadel.mayor",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.refreshHealth",
+          "when": "view == citadel.health",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.refreshWatchdog",
+          "when": "view == citadel.watchdog",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.refreshActivity",
+          "when": "view == citadel.activity",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "citadel.openAgentTerminal",
+          "when": "view == citadel.agents && viewItem == agent",
+          "group": "inline"
+        },
+        {
+          "command": "citadel.restartAgent",
+          "when": "view == citadel.agents && viewItem == agent",
+          "group": "inline"
+        },
+        {
+          "command": "citadel.killAgent",
+          "when": "view == citadel.agents && viewItem == agent",
+          "group": "inline"
+        },
+        {
+          "command": "citadel.reconnectTerminal",
+          "when": "view == citadel.agents && viewItem == agent",
+          "group": "context"
+        },
+        {
+          "command": "citadel.showBead",
+          "when": "view == citadel.beads && viewItem =~ /^beadItem/",
+          "group": "inline@1"
+        },
+        {
+          "command": "citadel.slingBead",
+          "when": "view == citadel.beads && viewItem == beadItem",
+          "group": "inline@2"
+        },
+        {
+          "command": "citadel.openAgentTerminal",
+          "when": "view == citadel.beads && viewItem == beadItemAssigned",
+          "group": "inline@2"
+        },
+        {
+          "command": "citadel.deleteBead",
+          "when": "view == citadel.beads && viewItem =~ /^beadItem/",
+          "group": "context"
+        },
+        {
+          "command": "citadel.slingBead",
+          "when": "view == citadel.convoys && viewItem == bead",
+          "group": "inline"
+        },
+        {
+          "command": "citadel.convoyShow",
+          "when": "view == citadel.convoys && viewItem == convoy",
+          "group": "inline"
+        },
+        {
+          "command": "citadel.showMail",
+          "when": "view == citadel.mail && viewItem =~ /^mail/",
+          "group": "inline"
+        },
+        {
+          "command": "citadel.openBeadTerminal",
+          "when": "view == citadel.beads && viewItem == beadItemAssigned",
+          "group": "inline@1"
+        },
+        {
+          "command": "citadel.openEscalationTerminal",
+          "when": "view == citadel.escalations && viewItem == escalationWithAgent",
+          "group": "inline@1"
+        },
+        {
+          "command": "citadel.resolveEscalation",
+          "when": "view == citadel.escalations && viewItem =~ /^escalation/",
+          "group": "inline@2"
+        },
+        {
+          "command": "citadel.pourWorkflow",
+          "when": "view == citadel.workflows && viewItem == molecule",
+          "group": "inline"
+        },
+        {
+          "command": "citadel.showMergeRequestStatus",
+          "when": "view == citadel.queue && viewItem =~ /^queueItem/",
+          "group": "inline@1"
+        },
+        {
+          "command": "citadel.retryMergeRequest",
+          "when": "view == citadel.queue && viewItem == queueItemRetryable",
+          "group": "inline@2"
+        },
+        {
+          "command": "citadel.rejectMergeRequest",
+          "when": "view == citadel.queue && viewItem =~ /^queueItem/",
+          "group": "context"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "citadel.createBead",
+          "when": "true"
+        },
+        {
+          "command": "citadel.showBead",
+          "when": "true"
+        },
+        {
+          "command": "citadel.deleteBead",
+          "when": "true"
+        },
+        {
+          "command": "citadel.filterBeads",
+          "when": "true"
+        },
+        {
+          "command": "citadel.slingBead",
+          "when": "false"
+        },
+        {
+          "command": "citadel.createConvoy",
+          "when": "true"
+        },
+        {
+          "command": "citadel.attachMayor",
+          "when": "true"
+        },
+        {
+          "command": "citadel.detachMayor",
+          "when": "true"
+        },
+        {
+          "command": "citadel.showMayorTerminal",
+          "when": "true"
+        },
+        {
+          "command": "citadel.openDashboard",
+          "when": "true"
+        },
+        {
+          "command": "citadel.runBootstrap",
+          "when": "true"
+        },
+        {
+          "command": "citadel.configureClaudeProvider",
+          "when": "true"
+        },
+        {
+          "command": "citadel.repairDaemon",
+          "when": "true"
+        },
+        {
+          "command": "citadel.daemonStatus",
+          "when": "true"
+        },
+        {
+          "command": "citadel.composeMail",
+          "when": "true"
+        },
+        {
+          "command": "citadel.showMail",
+          "when": "true"
+        },
+        {
+          "command": "citadel.resolveEscalation",
+          "when": "true"
+        },
+        {
+          "command": "citadel.cookWorkflow",
+          "when": "true"
+        },
+        {
+          "command": "citadel.pourWorkflow",
+          "when": "true"
+        },
+        {
+          "command": "citadel.reconnectTerminal",
+          "when": "true"
+        },
+        {
+          "command": "citadel.openBeadTerminal",
+          "when": "false"
+        },
+        {
+          "command": "citadel.openEscalationTerminal",
+          "when": "false"
+        },
+        {
+          "command": "citadel.showBattlestation",
+          "when": "true"
+        },
+        {
+          "command": "citadel.openAllAgentTerminals",
+          "when": "true"
+        },
+        {
+          "command": "citadel.statusBarClick",
+          "when": "true"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Citadel",
+      "properties": {
+        "citadel.gtPath": {
+          "type": "string",
+          "default": "gt",
+          "description": "Path to the gt CLI binary."
+        },
+        "citadel.bdPath": {
+          "type": "string",
+          "default": "bd",
+          "description": "Path to the bd (Beads) CLI binary."
+        },
+        "citadel.workspacePath": {
+          "type": "string",
+          "default": "~/gt",
+          "description": "Path to the Citadel workspace (HQ) directory."
+        },
+        "citadel.refreshInterval": {
+          "type": "number",
+          "default": 5000,
+          "description": "Interval in milliseconds to poll gt CLI for status updates."
+        },
+        "citadel.dashboardPort": {
+          "type": "number",
+          "default": 8080,
+          "description": "Port for the Citadel dashboard server."
+        },
+        "citadel.battlestation.autoOpen": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically open the Battlestation panel when the first agent terminal is created."
+        },
+        "citadel.battlestation.refreshInterval": {
+          "type": "number",
+          "default": 3000,
+          "description": "Refresh interval in milliseconds for the Battlestation terminal grid."
+        },
+        "citadel.battlestation.autoCloseDelay": {
+          "type": "number",
+          "default": 30000,
+          "description": "Delay in milliseconds before auto-closing a completed agent terminal. Set to 0 to disable auto-close."
+        },
+        "citadel.claude.provider": {
+          "type": "string",
+          "enum": [
+            "none",
+            "vertex",
+            "bedrock",
+            "anthropic"
+          ],
+          "enumDescriptions": [
+            "Do not inject any Claude API provider environment variables.",
+            "Google Cloud Vertex AI (requires gcloud ADC login).",
+            "Amazon Bedrock.",
+            "Direct Anthropic API."
+          ],
+          "default": "none",
+          "description": "Claude API provider. When set, the required environment variables are injected into all Citadel terminals and gt processes."
+        },
+        "citadel.claude.vertex.projectId": {
+          "type": "string",
+          "default": "",
+          "description": "Google Cloud project ID for Vertex AI (e.g. \"gen-ai-preview\"). Maps to ANTHROPIC_VERTEX_PROJECT_ID.",
+          "when": "config.citadel.claude.provider == 'vertex'"
+        },
+        "citadel.claude.vertex.region": {
+          "type": "string",
+          "default": "global",
+          "description": "Vertex AI region (e.g. \"global\", \"us-east5\"). Maps to CLOUD_ML_REGION.",
+          "when": "config.citadel.claude.provider == 'vertex'"
+        },
+        "citadel.claude.bedrock.region": {
+          "type": "string",
+          "default": "us-east-1",
+          "description": "AWS region for Bedrock (e.g. \"us-east-1\"). Maps to AWS_REGION.",
+          "when": "config.citadel.claude.provider == 'bedrock'"
+        },
+        "citadel.claude.anthropic.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Anthropic API key. Leave blank if you set ANTHROPIC_API_KEY in your shell profile instead.",
+          "when": "config.citadel.claude.provider == 'anthropic'"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.9.3"
+  }
+}

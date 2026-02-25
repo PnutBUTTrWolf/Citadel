@@ -1,0 +1,646 @@
+/*---------------------------------------------------------------------------------------------
+ *  VSMax - Citadel Terminal IDE
+ *  Licensed under the MIT License.
+ *--------------------------------------------------------------------------------------------*/
+
+import * as vscode from 'vscode';
+import { GtClient } from './gtClient';
+import { AgentsTreeProvider } from './views/agentsView';
+import { BeadsTreeProvider } from './views/beadsView';
+import { ConvoysTreeProvider } from './views/convoysView';
+import { RigsTreeProvider } from './views/rigsView';
+import { MayorTreeProvider } from './views/mayorView';
+import { MailTreeProvider } from './views/mailView';
+import { QueueTreeProvider } from './views/queueView';
+import { EscalationsTreeProvider } from './views/escalationsView';
+import { WorkflowsTreeProvider } from './views/workflowsView';
+import { HealthTreeProvider } from './views/healthView';
+import { WatchdogTreeProvider } from './views/watchdogView';
+import { ActivityTreeProvider } from './views/activityView';
+import { CitadelStatusBar } from './statusBar';
+import { TerminalManager } from './terminalManager';
+import { slingBead } from './commands/sling';
+import { createBead, showBeadDetails, deleteBead } from './commands/bead';
+import { createConvoy, showConvoyDetails } from './commands/convoy';
+import { detachMayor } from './commands/mayor';
+import { showMailMessage, composeMail } from './commands/mail';
+import { resolveEscalation } from './commands/escalation';
+import { cookWorkflow, pourWorkflow } from './commands/workflow';
+import { BattlestationPanel } from './views/battlestationView';
+
+export function activate(context: vscode.ExtensionContext): void {
+	console.log('[Citadel] Extension activating in extension host (pid ' + process.pid + ')');
+	const outputChannel = vscode.window.createOutputChannel('Citadel');
+	const client = new GtClient();
+	const terminalManager = new TerminalManager(client, outputChannel, context);
+	const statusBar = new CitadelStatusBar(client);
+
+	// --- Tree data providers ---
+	const agentsProvider = new AgentsTreeProvider(client);
+	const beadsProvider = new BeadsTreeProvider(client);
+	const convoysProvider = new ConvoysTreeProvider(client);
+	const rigsProvider = new RigsTreeProvider(client);
+	const mayorProvider = new MayorTreeProvider(client);
+	const mailProvider = new MailTreeProvider(client);
+	const queueProvider = new QueueTreeProvider(client);
+	const escalationsProvider = new EscalationsTreeProvider(client);
+	const workflowsProvider = new WorkflowsTreeProvider(client);
+	const healthProvider = new HealthTreeProvider(client);
+	const watchdogProvider = new WatchdogTreeProvider(client);
+	const activityProvider = new ActivityTreeProvider(client);
+
+	// Agents: hero view with running-count badge
+	const agentsTreeView = vscode.window.createTreeView('citadel.agents', {
+		treeDataProvider: agentsProvider,
+	});
+	agentsProvider.onRunningCountChanged = (count) => {
+		agentsTreeView.badge = count > 0
+			? { value: count, tooltip: `${count} running agent${count === 1 ? '' : 's'}` }
+			: undefined;
+	};
+
+	const beadsTreeView = vscode.window.createTreeView('citadel.beads', {
+		treeDataProvider: beadsProvider,
+	});
+	// Restore persisted beads filter mode
+	const savedFilterMode = context.workspaceState.get<'active' | 'all'>('citadel.beadsFilterMode', 'active');
+	beadsProvider.setFilterMode(savedFilterMode);
+	vscode.commands.executeCommand('setContext', 'citadel.beadsFilterMode', savedFilterMode);
+	const convoysTreeView = vscode.window.createTreeView('citadel.convoys', {
+		treeDataProvider: convoysProvider,
+	});
+	vscode.window.registerTreeDataProvider('citadel.rigs', rigsProvider);
+	const mayorTreeView = vscode.window.createTreeView('citadel.mayor', {
+		treeDataProvider: mayorProvider,
+	});
+	const mailTreeView = vscode.window.createTreeView('citadel.mail', {
+		treeDataProvider: mailProvider,
+	});
+	mailProvider.onUnreadCountChanged = (count) => {
+		mailTreeView.badge = count > 0
+			? { value: count, tooltip: `${count} unread message${count === 1 ? '' : 's'}` }
+			: undefined;
+	};
+	const queueTreeView = vscode.window.createTreeView('citadel.queue', {
+		treeDataProvider: queueProvider,
+	});
+	const escalationsTreeView = vscode.window.createTreeView('citadel.escalations', {
+		treeDataProvider: escalationsProvider,
+	});
+	vscode.window.registerTreeDataProvider('citadel.workflows', workflowsProvider);
+	const healthTreeView = vscode.window.createTreeView('citadel.health', {
+		treeDataProvider: healthProvider,
+	});
+	vscode.window.registerTreeDataProvider('citadel.watchdog', watchdogProvider);
+	vscode.window.registerTreeDataProvider('citadel.activity', activityProvider);
+
+	// --- Commands: existing ---
+	context.subscriptions.push(
+		vscode.commands.registerCommand('citadel.refreshAgents', () => {
+			agentsProvider.refresh();
+			statusBar.refresh();
+		}),
+		vscode.commands.registerCommand('citadel.refreshBeads', () => {
+			beadsProvider.refresh();
+		}),
+		vscode.commands.registerCommand('citadel.filterBeads', () => {
+			const next = beadsProvider.filterMode === 'active' ? 'all' : 'active';
+			beadsProvider.setFilterMode(next);
+			context.workspaceState.update('citadel.beadsFilterMode', next);
+		}),
+		vscode.commands.registerCommand('citadel.createBead', async () => {
+			await createBead(client);
+			beadsProvider.refresh();
+		}),
+		vscode.commands.registerCommand('citadel.showBead', (item?: { bead?: { id?: string } }) => showBeadDetails(client, item?.bead?.id)),
+		vscode.commands.registerCommand('citadel.deleteBead', async (item?: { bead?: { id?: string } }) => {
+			await deleteBead(client, item?.bead?.id);
+			beadsProvider.refresh();
+		}),
+		vscode.commands.registerCommand('citadel.refreshConvoys', () => {
+			convoysProvider.refresh();
+			statusBar.refresh();
+		}),
+		vscode.commands.registerCommand('citadel.refreshRigs', () => {
+			rigsProvider.refresh();
+		}),
+		vscode.commands.registerCommand('citadel.slingBead', async (item?: { bead?: { id?: string } }) => {
+			const result = await slingBead(client, item?.bead?.id);
+			// Auto-watch for the new agent terminal after sling
+			if (result) {
+				terminalManager.watchForSlung(result.beadId, result.rigName);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.createConvoy', () => createConvoy(client)),
+		vscode.commands.registerCommand('citadel.convoyShow', (convoyId?: string) => showConvoyDetails(client, convoyId)),
+		vscode.commands.registerCommand('citadel.attachMayor', async () => {
+			await terminalManager.openMayorTerminal();
+			mayorProvider.updateStatus({ attached: true });
+			statusBar.setMayorAttached(true);
+		}),
+		vscode.commands.registerCommand('citadel.detachMayor', async () => {
+			await detachMayor(client);
+			terminalManager.closeAgentTerminal('__mayor__');
+			mayorProvider.updateStatus({ attached: false });
+			statusBar.setMayorAttached(false);
+		}),
+		vscode.commands.registerCommand('citadel.showMayorTerminal', () => {
+			terminalManager.showMayorTerminal();
+		}),
+		vscode.commands.registerCommand('citadel.addRig', async () => {
+			const name = await vscode.window.showInputBox({ prompt: 'Rig name', placeHolder: 'myproject' });
+			if (!name) { return; }
+			const repoUrl = await vscode.window.showInputBox({ prompt: 'Repository URL', placeHolder: 'https://github.com/you/repo.git' });
+			if (!repoUrl) { return; }
+			try {
+				await client.addRig(name, repoUrl);
+				vscode.window.showInformationMessage(`Added rig "${name}"`);
+				rigsProvider.refresh();
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to add rig: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.openAgentTerminal', (item: { agent?: import('./gtClient').GtAgent }) => {
+			if (item?.agent) {
+				terminalManager.openAgentTerminal(item.agent);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.reconnectTerminal', async (item?: { agent?: import('./gtClient').GtAgent }) => {
+			const agent = item?.agent;
+			if (agent) {
+				terminalManager.reconnectAgent(agent);
+				return;
+			}
+			// If no agent provided, pick from running agents that have tmux sessions
+			const agents = await client.getAgents();
+			const reconnectable = agents.filter(a => a.running && a.session);
+			if (reconnectable.length === 0) {
+				vscode.window.showInformationMessage('No agents with active tmux sessions to reconnect.');
+				return;
+			}
+			const picked = await vscode.window.showQuickPick(
+				reconnectable.map(a => ({
+					label: a.name,
+					description: `${a.displayStatus} — ${a.rig} (session: ${a.session})`,
+					agent: a,
+				})),
+				{ placeHolder: 'Select agent to reconnect tmux session' },
+			);
+			if (picked) {
+				terminalManager.reconnectAgent(picked.agent);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.spawnAgent', async () => {
+			const rigs = await client.getRigs();
+			if (rigs.length === 0) {
+				vscode.window.showWarningMessage('No rigs configured. Add a rig first.');
+				return;
+			}
+			const rigName = rigs.length === 1
+				? rigs[0].name
+				: await vscode.window.showQuickPick(rigs.map(r => r.name), { placeHolder: 'Select rig' });
+			if (!rigName) { return; }
+
+			const beadId = await vscode.window.showInputBox({
+				prompt: 'Bead ID to assign',
+				placeHolder: 'gt-abc12',
+			});
+			if (!beadId) { return; }
+
+			try {
+				await client.slingBead(beadId, rigName);
+				vscode.window.showInformationMessage(`Spawned agent for ${beadId} on ${rigName}`);
+				agentsProvider.refresh();
+				terminalManager.watchForSlung(beadId.trim(), rigName);
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to spawn agent: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.killAgent', async (item: { agent?: import('./gtClient').GtAgent }) => {
+			const agentName: string | undefined = item?.agent?.name;
+			const agentRole: string | undefined = item?.agent?.role;
+			const agentRig: string | undefined = item?.agent?.rig;
+			if (!agentName) {
+				const agents = await client.getAgents();
+				const killable = agents.filter(a => a.running || a.displayStatus === 'idle');
+				if (killable.length === 0) {
+					vscode.window.showInformationMessage('No agents to kill');
+					return;
+				}
+				const picked = await vscode.window.showQuickPick(
+					killable.map(a => ({ label: a.name, description: `${a.displayStatus} — ${a.rig}`, agent: a })),
+					{ placeHolder: 'Select agent to kill' },
+				);
+				if (!picked) { return; }
+				await vscode.commands.executeCommand('citadel.killAgent', { agent: picked.agent });
+				return;
+			}
+
+			const confirm = await vscode.window.showWarningMessage(
+				`Kill agent "${agentName}"?`, { modal: true }, 'Kill',
+			);
+			if (confirm !== 'Kill') { return; }
+
+			try {
+				await client.killAgent(agentName, agentRole, agentRig);
+				terminalManager.closeAgentTerminal(agentName);
+				if (agentRole === 'mayor') {
+					terminalManager.closeAgentTerminal('__mayor__');
+					mayorProvider.updateStatus({ attached: false });
+					statusBar.setMayorAttached(false);
+				}
+				vscode.window.showInformationMessage(`Killed agent "${agentName}"`);
+				agentsProvider.refresh();
+				statusBar.refresh();
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to kill agent: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.restartAgent', async (item: { agent?: import('./gtClient').GtAgent }) => {
+			const agent = item?.agent;
+			if (!agent) {
+				const agents = await client.getAgents();
+				const restartable = agents.filter(a =>
+					a.role !== 'mayor' && a.role !== 'deacon' && a.running,
+				);
+				if (restartable.length === 0) {
+					vscode.window.showInformationMessage('No restartable agents');
+					return;
+				}
+				const picked = await vscode.window.showQuickPick(
+					restartable.map(a => ({ label: a.name, description: `${a.role} — ${a.rig}`, agent: a })),
+					{ placeHolder: 'Select agent to restart' },
+				);
+				if (!picked) { return; }
+				await vscode.commands.executeCommand('citadel.restartAgent', { agent: picked.agent });
+				return;
+			}
+
+			try {
+				await client.restartAgent(agent.name, agent.role, agent.rig);
+				vscode.window.showInformationMessage(`Restart initiated for "${agent.name}" (${agent.role})`);
+				agentsProvider.refresh();
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to restart agent: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.openDashboard', async () => {
+			const config = vscode.workspace.getConfiguration('citadel');
+			const port = config.get<number>('dashboardPort', 8080);
+			try {
+				client.openDashboard(port);
+				const url = `http://localhost:${port}`;
+				vscode.env.openExternal(vscode.Uri.parse(url));
+				vscode.window.showInformationMessage(`Dashboard at ${url}`);
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to open dashboard: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.statusBarClick', () => statusBar.showStatusMenu()),
+		vscode.commands.registerCommand('citadel.configureClaudeProvider', () => statusBar.configureClaudeProvider()),
+		vscode.commands.registerCommand('citadel.repairDaemon', async () => {
+			try {
+				const health = await client.getDaemonHealth();
+				const issues = client.getDaemonIssues(health);
+
+				if (issues.length === 0) {
+					vscode.window.showInformationMessage('Daemon is healthy — no issues found.');
+					return;
+				}
+
+				const fixes = await client.repairDaemon();
+				vscode.window.showInformationMessage(`Daemon repaired: ${fixes.join('; ')}`);
+				statusBar.refresh();
+				agentsProvider.refresh();
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Daemon repair failed: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.debugAgents', async () => {
+			try {
+				const dump = await client.debugAgents();
+				outputChannel.clear();
+				outputChannel.appendLine(dump);
+				outputChannel.show(true);
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				outputChannel.appendLine(`Debug failed: ${msg}`);
+				outputChannel.show(true);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.daemonStatus', async () => {
+			try {
+				const health = await client.getDaemonHealth();
+				const issues = client.getDaemonIssues(health);
+
+				const lines: string[] = [];
+				lines.push(health.running ? `Daemon running (PID ${health.pid})` : 'Daemon is NOT running');
+				if (health.staleHeartbeat) {
+					lines.push(`Heartbeat stale (${health.heartbeatAge} old)`);
+				}
+				for (const cl of health.crashLoops) {
+					lines.push(`${cl.agent}: crash loop (${cl.restartCount} restarts)`);
+				}
+				if (health.staleAgentConfig) {
+					lines.push(`Stale agent config: ${health.staleAgentCommand}`);
+				}
+
+				if (issues.length > 0) {
+					const action = await vscode.window.showWarningMessage(lines.join('\n'), 'Repair');
+					if (action === 'Repair') {
+						await vscode.commands.executeCommand('citadel.repairDaemon');
+					}
+				} else {
+					vscode.window.showInformationMessage(lines.join(' | '));
+				}
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to check daemon: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.runBootstrap', async () => {
+			const workspaceFolders = vscode.workspace.workspaceFolders;
+			let scriptPath: string | undefined;
+
+			if (workspaceFolders) {
+				for (const folder of workspaceFolders) {
+					const candidate = vscode.Uri.joinPath(folder.uri, 'scripts', 'setup-citadel.sh');
+					try {
+						await vscode.workspace.fs.stat(candidate);
+						scriptPath = candidate.fsPath;
+						break;
+					} catch {
+						// not found in this folder
+					}
+				}
+			}
+
+			if (!scriptPath) {
+				const picked = await vscode.window.showOpenDialog({
+					canSelectMany: false,
+					filters: { 'Shell Scripts': ['sh'] },
+					title: 'Locate setup-citadel.sh',
+				});
+				if (picked && picked.length > 0) {
+					scriptPath = picked[0].fsPath;
+				}
+			}
+
+			if (!scriptPath) {
+				vscode.window.showWarningMessage('Could not find scripts/setup-citadel.sh. Open the GasTownVS repo as a workspace folder, or locate the script manually.');
+				return;
+			}
+
+			const terminal = vscode.window.createTerminal({
+				name: '🔧 Citadel Bootstrap',
+				iconPath: new vscode.ThemeIcon('wrench'),
+				color: new vscode.ThemeColor('terminal.ansiGreen'),
+			});
+
+			terminal.sendText(`bash "${scriptPath}"`);
+			terminal.show();
+			vscode.window.showInformationMessage('Running Citadel bootstrap setup…');
+		}),
+
+		// --- Commands: new features ---
+		vscode.commands.registerCommand('citadel.refreshMail', () => {
+			mailProvider.refresh();
+		}),
+		vscode.commands.registerCommand('citadel.showMail', (msg?: import('./cli/contracts').GtMailMessage) => showMailMessage(client, msg)),
+		vscode.commands.registerCommand('citadel.composeMail', () => composeMail(client)),
+		vscode.commands.registerCommand('citadel.refreshQueue', () => queueProvider.refresh()),
+		vscode.commands.registerCommand('citadel.retryMergeRequest', async (treeItem?: import('./views/queueView').QueueTreeItem) => {
+			const item = treeItem?.item;
+			if (!item) { return; }
+			try {
+				await client.retryMergeRequest(item.rig, item.id);
+				vscode.window.showInformationMessage(`Retrying merge request ${item.id}`);
+				queueProvider.refresh();
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to retry MR: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.rejectMergeRequest', async (treeItem?: import('./views/queueView').QueueTreeItem) => {
+			const item = treeItem?.item;
+			if (!item) { return; }
+			const reason = await vscode.window.showInputBox({
+				prompt: `Reason for rejecting ${item.id}`,
+				placeHolder: 'e.g. Superseded by other work',
+			});
+			if (!reason) { return; }
+			const confirm = await vscode.window.showWarningMessage(
+				`Reject merge request "${item.title || item.branch}"?`, { modal: true }, 'Reject',
+			);
+			if (confirm !== 'Reject') { return; }
+			try {
+				await client.rejectMergeRequest(item.rig, item.id, reason);
+				vscode.window.showInformationMessage(`Rejected merge request ${item.id}`);
+				queueProvider.refresh();
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to reject MR: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.showMergeRequestStatus', async (treeItem?: import('./views/queueView').QueueTreeItem) => {
+			const item = treeItem?.item;
+			if (!item) { return; }
+			try {
+				const status = await client.getMergeRequestStatus(item.id);
+				const doc = await vscode.workspace.openTextDocument({ content: status, language: 'markdown' });
+				await vscode.window.showTextDocument(doc, { preview: true });
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to get MR status: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.nudgeRefinery', async () => {
+			try {
+				await client.nudgeRefinery();
+				vscode.window.showInformationMessage('Refinery restarted — processing queue');
+				queueProvider.refresh();
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to nudge refinery: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.refreshEscalations', () => escalationsProvider.refresh()),
+		vscode.commands.registerCommand('citadel.resolveEscalation', (e?: import('./cli/contracts').GtEscalation) => {
+			resolveEscalation(client, e).then(() => escalationsProvider.refresh());
+		}),
+		vscode.commands.registerCommand('citadel.openBeadTerminal', async (bead?: import('./gtClient').GtBead) => {
+			if (!bead?.assignee) { return; }
+			const agents = await client.getAgents();
+			const agent = agents.find(a => a.name === bead.assignee || a.beadId === bead.id);
+			if (agent) {
+				terminalManager.openAgentTerminal(agent);
+			} else {
+				// Agent not in current list — construct minimal fallback
+				terminalManager.openAgentTerminal({
+					name: bead.assignee,
+					status: bead.status,
+					displayStatus: 'idle',
+					rig: '',
+					role: 'polecat',
+					running: false,
+					hasWork: false,
+					beadId: bead.id,
+				});
+			}
+		}),
+		vscode.commands.registerCommand('citadel.openEscalationTerminal', async (escalation?: import('./cli/contracts').GtEscalation) => {
+			if (!escalation?.agent) { return; }
+			const agents = await client.getAgents();
+			const agent = agents.find(a => a.name === escalation.agent);
+			if (agent) {
+				terminalManager.openAgentTerminal(agent);
+			} else {
+				// Agent not found in current agents list — construct minimal agent object
+				terminalManager.openAgentTerminal({
+					name: escalation.agent,
+					status: '',
+					displayStatus: 'idle',
+					rig: escalation.rig || '',
+					role: 'polecat',
+					running: false,
+					hasWork: false,
+					beadId: escalation.bead_id,
+				});
+			}
+		}),
+		vscode.commands.registerCommand('citadel.showBattlestation', async () => {
+			// Ensure terminals are open before showing the grid panel
+			if (terminalManager.terminalCount === 0) {
+				await terminalManager.openAllAgentTerminals();
+			}
+			if (terminalManager.terminalCount > 0) {
+				BattlestationPanel.createOrShow(context.extensionUri, terminalManager);
+			} else {
+				vscode.window.showInformationMessage('No running agents to display in the battlestation.');
+			}
+		}),
+		vscode.commands.registerCommand('citadel.openAllAgentTerminals', () => terminalManager.openAllAgentTerminals()),
+		vscode.commands.registerCommand('citadel.refreshWorkflows', () => workflowsProvider.refresh()),
+		vscode.commands.registerCommand('citadel.cookWorkflow', () => {
+			cookWorkflow(client).then(() => workflowsProvider.refresh());
+		}),
+		vscode.commands.registerCommand('citadel.pourWorkflow', () => {
+			pourWorkflow(client).then(() => workflowsProvider.refresh());
+		}),
+		vscode.commands.registerCommand('citadel.refreshMayor', () => mayorProvider.refreshFromCli()),
+		vscode.commands.registerCommand('citadel.refreshHealth', () => healthProvider.refresh()),
+		vscode.commands.registerCommand('citadel.refreshWatchdog', () => watchdogProvider.refresh()),
+		vscode.commands.registerCommand('citadel.refreshActivity', () => activityProvider.refresh()),
+	);
+
+	// --- Cross-panel wiring: terminal count → status bar, auto-open battlestation ---
+	context.subscriptions.push(
+		terminalManager.onDidTerminalCountChange((count) => {
+			statusBar.setTerminalCount(count);
+
+			// Auto-open battlestation when first terminal appears (if configured)
+			if (count > 0 && !BattlestationPanel.current) {
+				const autoOpen = vscode.workspace.getConfiguration('citadel')
+					.get<boolean>('battlestation.autoOpen', false);
+				if (autoOpen) {
+					BattlestationPanel.createOrShow(context.extensionUri, terminalManager);
+				}
+			}
+		}),
+	);
+
+	// --- Configuration change listener ---
+	vscode.workspace.onDidChangeConfiguration((e) => {
+		if (e.affectsConfiguration('citadel')) {
+			client.reload();
+			statusBar.refresh();
+		}
+		if (e.affectsConfiguration('citadel.claude')) {
+			statusBar.refreshClaudeItem();
+			client.syncClaudeWrapper().catch(err =>
+				console.error('[Citadel] failed to sync claude wrapper:', err));
+		}
+	});
+
+	// --- Auto-refresh (visibility-gated + tiered to reduce CLI calls) ---
+	const refreshInterval = vscode.workspace.getConfiguration('citadel').get<number>('refreshInterval', 5000);
+	let refreshTick = 0;
+	const autoRefresh = setInterval(() => {
+		refreshTick++;
+
+		// Every tick: badge-bearing views and always-visible elements
+		agentsProvider.refresh();
+		statusBar.refresh();
+		terminalManager.syncAgentTerminals();
+
+		// Visibility-gated: skip CLI calls for hidden panels
+		if (beadsTreeView.visible) { beadsProvider.refresh(); }
+		if (convoysTreeView.visible) { convoysProvider.refresh(); }
+
+		// Tiered: less-critical views refresh every other tick (~10s)
+		if (refreshTick % 2 === 0) {
+			mailProvider.refresh();
+			if (mayorTreeView.visible) { mayorProvider.refreshFromCli(); }
+			if (queueTreeView.visible) { queueProvider.refresh(); }
+			if (escalationsTreeView.visible) { escalationsProvider.refresh(); }
+		}
+
+		// Slowest tier: health refreshes every 3rd tick (~15s)
+		if (refreshTick % 3 === 0) {
+			if (healthTreeView.visible) { healthProvider.refresh(); }
+		}
+	}, refreshInterval);
+
+	context.subscriptions.push({
+		dispose: () => {
+			clearInterval(autoRefresh);
+			agentsTreeView.dispose();
+			beadsTreeView.dispose();
+			convoysTreeView.dispose();
+			mayorTreeView.dispose();
+			mailTreeView.dispose();
+			queueTreeView.dispose();
+			escalationsTreeView.dispose();
+			healthTreeView.dispose();
+			statusBar.dispose();
+			terminalManager.dispose();
+			watchdogProvider.dispose();
+			client.dispose();
+		}
+	});
+
+	statusBar.start();
+
+	client.syncClaudeWrapper().catch(err =>
+		console.error('[Citadel] initial claude wrapper sync failed:', err));
+
+	client.getMayorStatus().then(status => {
+		mayorProvider.updateStatus(status);
+		if (status.attached) {
+			terminalManager.openMayorTerminal();
+		}
+	});
+
+	// Restore battlestation layout from previous session
+	terminalManager.restoreLayout().then(restored => {
+		if (restored > 0) {
+			outputChannel.appendLine(`[Citadel] Restored ${restored} terminal(s) from previous session`);
+			statusBar.setTerminalCount(terminalManager.terminalCount);
+
+			// Auto-open battlestation panel if terminals were restored
+			const autoOpen = vscode.workspace.getConfiguration('citadel')
+				.get<boolean>('battlestation.autoOpen', false);
+			if (autoOpen) {
+				BattlestationPanel.createOrShow(context.extensionUri, terminalManager);
+			}
+		}
+	});
+}
+
+export function deactivate(): void {}
