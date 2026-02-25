@@ -1,0 +1,20 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"rootDir": "./src",
+		"outDir": "./out",
+		"types": [
+			"node",
+			"mocha"
+		],
+		"noUnusedLocals": false,
+		"noUnusedParameters": false
+	},
+	"include": [
+		"src/**/*.ts"
+	],
+	"exclude": [
+		"src/cli/*.test.ts",
+		"src/gtClient.test.ts"
+	]
+}
