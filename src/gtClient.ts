@@ -52,6 +52,7 @@ export interface GtBead {
 	status: string;
 	assignee?: string;
 	issue_type?: string;
+	labels?: string[];
 }
 
 export interface BeadListOptions {
@@ -938,6 +939,7 @@ export class GtClient {
 					status: b.status || 'pending',
 					assignee: b.assignee,
 					issue_type: b.issue_type,
+					labels: Array.isArray(b.labels) ? b.labels : undefined,
 				}));
 			}
 			return [];
