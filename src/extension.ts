@@ -586,6 +586,7 @@ export function activate(context: vscode.ExtensionContext): void {
 		// Tiered: less-critical views refresh every other tick (~10s)
 		if (refreshTick % 2 === 0) {
 			mailProvider.refresh();
+			rigsProvider.refresh();
 			if (mayorTreeView.visible) { mayorProvider.refreshFromCli(); }
 			if (queueTreeView.visible) { queueProvider.refresh(); }
 			if (escalationsTreeView.visible) { escalationsProvider.refresh(); }
