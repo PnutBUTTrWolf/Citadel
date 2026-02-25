@@ -52,7 +52,6 @@ export async function probeCapabilities(
 		mail: gtVersion !== null,
 		work: bdVersion !== null,
 		convoys: bdVersion !== null,
-		workflows: gtVersion !== null && compareVersions(gtVersion, '0.2.0') >= 0,
 	};
 
 	const error = !available

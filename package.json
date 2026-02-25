@@ -90,24 +90,6 @@
           "contextualTitle": "Citadel Merge Queue"
         },
         {
-          "id": "citadel.escalations",
-          "name": "Escalations",
-          "icon": "$(warning)",
-          "contextualTitle": "Citadel Escalations"
-        },
-        {
-          "id": "citadel.workflows",
-          "name": "Workflows",
-          "icon": "$(beaker)",
-          "contextualTitle": "Citadel Workflows"
-        },
-        {
-          "id": "citadel.activity",
-          "name": "Activity",
-          "icon": "$(history)",
-          "contextualTitle": "Citadel Activity"
-        },
-        {
           "id": "citadel.beads",
           "name": "Beads",
           "icon": "$(circle-outline)",
@@ -321,36 +303,6 @@
         "icon": "$(run)"
       },
       {
-        "command": "citadel.refreshEscalations",
-        "title": "Refresh Escalations",
-        "category": "Citadel",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "citadel.resolveEscalation",
-        "title": "Resolve Escalation",
-        "category": "Citadel",
-        "icon": "$(check)"
-      },
-      {
-        "command": "citadel.refreshWorkflows",
-        "title": "Refresh Workflows",
-        "category": "Citadel",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "citadel.cookWorkflow",
-        "title": "Cook Workflow",
-        "category": "Citadel",
-        "icon": "$(play)"
-      },
-      {
-        "command": "citadel.pourWorkflow",
-        "title": "Pour Workflow",
-        "category": "Citadel",
-        "icon": "$(run)"
-      },
-      {
         "command": "citadel.refreshMayor",
         "title": "Refresh Mayor",
         "category": "Citadel",
@@ -369,12 +321,6 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "citadel.refreshActivity",
-        "title": "Refresh Activity",
-        "category": "Citadel",
-        "icon": "$(refresh)"
-      },
-      {
         "command": "citadel.reconnectTerminal",
         "title": "Reconnect Agent Terminal",
         "category": "Citadel",
@@ -382,12 +328,6 @@
       },
       {
         "command": "citadel.openBeadTerminal",
-        "title": "Open Agent Terminal",
-        "category": "Citadel",
-        "icon": "$(terminal)"
-      },
-      {
-        "command": "citadel.openEscalationTerminal",
         "title": "Open Agent Terminal",
         "category": "Citadel",
         "icon": "$(terminal)"
@@ -494,21 +434,6 @@
           "group": "navigation"
         },
         {
-          "command": "citadel.refreshEscalations",
-          "when": "view == citadel.escalations",
-          "group": "navigation"
-        },
-        {
-          "command": "citadel.refreshWorkflows",
-          "when": "view == citadel.workflows",
-          "group": "navigation"
-        },
-        {
-          "command": "citadel.cookWorkflow",
-          "when": "view == citadel.workflows",
-          "group": "navigation"
-        },
-        {
           "command": "citadel.refreshMayor",
           "when": "view == citadel.mayor",
           "group": "navigation"
@@ -526,11 +451,6 @@
         {
           "command": "citadel.refreshWatchdog",
           "when": "view == citadel.watchdog",
-          "group": "navigation"
-        },
-        {
-          "command": "citadel.refreshActivity",
-          "when": "view == citadel.activity",
           "group": "navigation"
         }
       ],
@@ -594,21 +514,6 @@
           "command": "citadel.openBeadTerminal",
           "when": "view == citadel.beads && viewItem == beadItemAssigned",
           "group": "inline@1"
-        },
-        {
-          "command": "citadel.openEscalationTerminal",
-          "when": "view == citadel.escalations && viewItem == escalationWithAgent",
-          "group": "inline@1"
-        },
-        {
-          "command": "citadel.resolveEscalation",
-          "when": "view == citadel.escalations && viewItem =~ /^escalation/",
-          "group": "inline@2"
-        },
-        {
-          "command": "citadel.pourWorkflow",
-          "when": "view == citadel.workflows && viewItem == molecule",
-          "group": "inline"
         },
         {
           "command": "citadel.showMergeRequestStatus",
@@ -692,27 +597,11 @@
           "when": "true"
         },
         {
-          "command": "citadel.resolveEscalation",
-          "when": "true"
-        },
-        {
-          "command": "citadel.cookWorkflow",
-          "when": "true"
-        },
-        {
-          "command": "citadel.pourWorkflow",
-          "when": "true"
-        },
-        {
           "command": "citadel.reconnectTerminal",
           "when": "true"
         },
         {
           "command": "citadel.openBeadTerminal",
-          "when": "false"
-        },
-        {
-          "command": "citadel.openEscalationTerminal",
           "when": "false"
         },
         {

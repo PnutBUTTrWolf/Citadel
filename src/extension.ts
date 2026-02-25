@@ -12,11 +12,8 @@ import { RigsTreeProvider } from './views/rigsView';
 import { MayorTreeProvider } from './views/mayorView';
 import { MailTreeProvider } from './views/mailView';
 import { QueueTreeProvider } from './views/queueView';
-import { EscalationsTreeProvider } from './views/escalationsView';
-import { WorkflowsTreeProvider } from './views/workflowsView';
 import { HealthTreeProvider } from './views/healthView';
 import { WatchdogTreeProvider } from './views/watchdogView';
-import { ActivityTreeProvider } from './views/activityView';
 import { CitadelStatusBar } from './statusBar';
 import { TerminalManager } from './terminalManager';
 import { slingBead } from './commands/sling';
@@ -24,8 +21,6 @@ import { createBead, showBeadDetails, deleteBead } from './commands/bead';
 import { createConvoy, showConvoyDetails } from './commands/convoy';
 import { detachMayor } from './commands/mayor';
 import { showMailMessage, composeMail } from './commands/mail';
-import { resolveEscalation } from './commands/escalation';
-import { cookWorkflow, pourWorkflow } from './commands/workflow';
 import { BattlestationPanel } from './views/battlestationView';
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -43,11 +38,8 @@ export function activate(context: vscode.ExtensionContext): void {
 	const mayorProvider = new MayorTreeProvider(client);
 	const mailProvider = new MailTreeProvider(client);
 	const queueProvider = new QueueTreeProvider(client);
-	const escalationsProvider = new EscalationsTreeProvider(client);
-	const workflowsProvider = new WorkflowsTreeProvider(client);
 	const healthProvider = new HealthTreeProvider(client);
 	const watchdogProvider = new WatchdogTreeProvider(client);
-	const activityProvider = new ActivityTreeProvider(client);
 
 	// Agents: hero view with running-count badge
 	const agentsTreeView = vscode.window.createTreeView('citadel.agents', {
@@ -84,15 +76,10 @@ export function activate(context: vscode.ExtensionContext): void {
 	const queueTreeView = vscode.window.createTreeView('citadel.queue', {
 		treeDataProvider: queueProvider,
 	});
-	const escalationsTreeView = vscode.window.createTreeView('citadel.escalations', {
-		treeDataProvider: escalationsProvider,
-	});
-	vscode.window.registerTreeDataProvider('citadel.workflows', workflowsProvider);
 	const healthTreeView = vscode.window.createTreeView('citadel.health', {
 		treeDataProvider: healthProvider,
 	});
 	vscode.window.registerTreeDataProvider('citadel.watchdog', watchdogProvider);
-	vscode.window.registerTreeDataProvider('citadel.activity', activityProvider);
 
 	// --- Commands: existing ---
 	context.subscriptions.push(
@@ -470,10 +457,6 @@ export function activate(context: vscode.ExtensionContext): void {
 				vscode.window.showErrorMessage(`Failed to nudge refinery: ${msg}`);
 			}
 		}),
-		vscode.commands.registerCommand('citadel.refreshEscalations', () => escalationsProvider.refresh()),
-		vscode.commands.registerCommand('citadel.resolveEscalation', (e?: import('./cli/contracts').GtEscalation) => {
-			resolveEscalation(client, e).then(() => escalationsProvider.refresh());
-		}),
 		vscode.commands.registerCommand('citadel.openBeadTerminal', async (bead?: import('./gtClient').GtBead) => {
 			if (!bead?.assignee) { return; }
 			const agents = await client.getAgents();
@@ -494,26 +477,6 @@ export function activate(context: vscode.ExtensionContext): void {
 				});
 			}
 		}),
-		vscode.commands.registerCommand('citadel.openEscalationTerminal', async (escalation?: import('./cli/contracts').GtEscalation) => {
-			if (!escalation?.agent) { return; }
-			const agents = await client.getAgents();
-			const agent = agents.find(a => a.name === escalation.agent);
-			if (agent) {
-				terminalManager.openAgentTerminal(agent);
-			} else {
-				// Agent not found in current agents list — construct minimal agent object
-				terminalManager.openAgentTerminal({
-					name: escalation.agent,
-					status: '',
-					displayStatus: 'idle',
-					rig: escalation.rig || '',
-					role: 'polecat',
-					running: false,
-					hasWork: false,
-					beadId: escalation.bead_id,
-				});
-			}
-		}),
 		vscode.commands.registerCommand('citadel.showBattlestation', async () => {
 			// Ensure terminals are open before showing the grid panel
 			if (terminalManager.terminalCount === 0) {
@@ -526,17 +489,9 @@ export function activate(context: vscode.ExtensionContext): void {
 			}
 		}),
 		vscode.commands.registerCommand('citadel.openAllAgentTerminals', () => terminalManager.openAllAgentTerminals()),
-		vscode.commands.registerCommand('citadel.refreshWorkflows', () => workflowsProvider.refresh()),
-		vscode.commands.registerCommand('citadel.cookWorkflow', () => {
-			cookWorkflow(client).then(() => workflowsProvider.refresh());
-		}),
-		vscode.commands.registerCommand('citadel.pourWorkflow', () => {
-			pourWorkflow(client).then(() => workflowsProvider.refresh());
-		}),
 		vscode.commands.registerCommand('citadel.refreshMayor', () => mayorProvider.refreshFromCli()),
 		vscode.commands.registerCommand('citadel.refreshHealth', () => healthProvider.refresh()),
 		vscode.commands.registerCommand('citadel.refreshWatchdog', () => watchdogProvider.refresh()),
-		vscode.commands.registerCommand('citadel.refreshActivity', () => activityProvider.refresh()),
 	);
 
 	// --- Cross-panel wiring: terminal count → status bar, auto-open battlestation ---
@@ -589,7 +544,6 @@ export function activate(context: vscode.ExtensionContext): void {
 			rigsProvider.refresh();
 			if (mayorTreeView.visible) { mayorProvider.refreshFromCli(); }
 			if (queueTreeView.visible) { queueProvider.refresh(); }
-			if (escalationsTreeView.visible) { escalationsProvider.refresh(); }
 		}
 
 		// Slowest tier: health refreshes every 3rd tick (~15s)
@@ -607,7 +561,6 @@ export function activate(context: vscode.ExtensionContext): void {
 			mayorTreeView.dispose();
 			mailTreeView.dispose();
 			queueTreeView.dispose();
-			escalationsTreeView.dispose();
 			healthTreeView.dispose();
 			statusBar.dispose();
 			terminalManager.dispose();

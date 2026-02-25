@@ -15,7 +15,6 @@ export class CitadelStatusBar {
 	private _agentCount = 0;
 	private _agentTotal = 0;
 	private _convoyText = '';
-	private _escalationCount = 0;
 	private _claudeProvider = '--';
 	private _terminalCount = 0;
 
@@ -43,11 +42,10 @@ export class CitadelStatusBar {
 
 	async refresh(): Promise<void> {
 		try {
-			const [convoys, agents, mayorStatus, escalations] = await Promise.all([
+			const [convoys, agents, mayorStatus] = await Promise.all([
 				this.client.getConvoys(),
 				this.client.getWorkerAgents(),
 				this.client.getMayorStatus(),
-				this.client.getEscalations().catch(() => []),
 			]);
 
 			const activeAgents = agents.filter(a => a.running);
@@ -62,13 +60,11 @@ export class CitadelStatusBar {
 			}
 
 			this._mayorAttached = mayorStatus.attached;
-			this._escalationCount = escalations.length;
 		} catch (err) {
 			console.warn('[Citadel] status bar refresh failed:', err instanceof Error ? err.message : err);
 			this._agentCount = 0;
 			this._agentTotal = 0;
 			this._convoyText = '';
-			this._escalationCount = 0;
 		}
 
 		this.render();
@@ -148,14 +144,6 @@ export class CitadelStatusBar {
 			action: 'mayor',
 		});
 
-		if (this._escalationCount > 0) {
-			items.push({
-				label: `$(warning) Escalations: ${this._escalationCount}`,
-				description: 'open escalations',
-				action: 'escalations',
-			});
-		}
-
 		items.push({
 			label: `$(layout) Battlestation${this._terminalCount > 0 ? ` (${this._terminalCount})` : ''}`,
 			description: this._terminalCount > 0 ? `${this._terminalCount} terminal${this._terminalCount !== 1 ? 's' : ''} open` : 'open terminal grid',
@@ -187,9 +175,6 @@ export class CitadelStatusBar {
 			case 'mayor':
 				vscode.commands.executeCommand(this._mayorAttached ? 'citadel.showMayorTerminal' : 'citadel.attachMayor');
 				break;
-			case 'escalations':
-				vscode.commands.executeCommand('citadel.escalations.focus');
-				break;
 			case 'battlestation':
 				vscode.commands.executeCommand('citadel.showBattlestation');
 				break;
@@ -212,10 +197,6 @@ export class CitadelStatusBar {
 
 		if (this._terminalCount > 0) {
 			segments.push(`$(layout) ${this._terminalCount}`);
-		}
-
-		if (this._escalationCount > 0) {
-			segments.push(`$(warning) ${this._escalationCount}`);
 		}
 
 		this.item.text = segments.join('  ');
@@ -241,16 +222,12 @@ export class CitadelStatusBar {
 			this._convoyText ? `Convoy: ${this._convoyText}` : null,
 			`Mayor: ${this._mayorAttached ? 'attached' : 'detached'}`,
 			this._terminalCount > 0 ? `Terminals: ${this._terminalCount}` : null,
-			this._escalationCount > 0 ? `Escalations: ${this._escalationCount}` : null,
 			`Claude: ${this._claudeProvider}`,
 		].filter(Boolean);
 		this.item.tooltip = tooltipLines.join(' | ');
 	}
 
 	private computeHealth(): HealthLevel {
-		if (this._escalationCount > 0) {
-			return 'error';
-		}
 		if (!this._mayorAttached && this._agentTotal > 0 && this._agentCount === 0) {
 			return 'warning';
 		}

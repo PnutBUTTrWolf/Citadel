@@ -164,51 +164,6 @@ export interface GtMergeQueueItem {
 }
 
 // ---------------------------------------------------------------------------
-// Escalations
-// ---------------------------------------------------------------------------
-
-export type EscalationType = 'decision' | 'conflict' | 'failure';
-export type EscalationSeverity = 'low' | 'medium' | 'high' | 'critical';
-
-export interface GtEscalation {
-	id: string;
-	type: EscalationType;
-	severity: EscalationSeverity;
-	title: string;
-	description: string;
-	agent?: string;
-	rig?: string;
-	bead_id?: string;
-	created_at: string;
-	resolved: boolean;
-	resolution?: string;
-}
-
-// ---------------------------------------------------------------------------
-// Workflows / molecules / formulas
-// ---------------------------------------------------------------------------
-
-export type WorkflowStatus = 'pending' | 'running' | 'completed' | 'failed' | 'paused';
-
-export interface GtFormula {
-	id: string;
-	name: string;
-	description?: string;
-	steps: number;
-}
-
-export interface GtMolecule {
-	id: string;
-	formula_id: string;
-	formula_name?: string;
-	status: WorkflowStatus;
-	progress: { completed: number; total: number };
-	rig?: string;
-	created_at: string;
-	updated_at: string;
-}
-
-// ---------------------------------------------------------------------------
 // Health / Watchdog
 // ---------------------------------------------------------------------------
 
@@ -225,30 +180,6 @@ export interface GtWatchdogTierStatus {
 }
 
 // ---------------------------------------------------------------------------
-// Activity
-// ---------------------------------------------------------------------------
-
-export type ActivityEventKind =
-	| 'agent_started' | 'agent_stopped' | 'agent_error'
-	| 'bead_created' | 'bead_completed' | 'bead_assigned'
-	| 'convoy_created' | 'convoy_completed'
-	| 'mail_received' | 'mail_sent'
-	| 'escalation_created' | 'escalation_resolved'
-	| 'workflow_started' | 'workflow_completed'
-	| 'merge_queued' | 'merge_completed'
-	| 'daemon_started' | 'daemon_stopped';
-
-export interface GtActivityEvent {
-	id: string;
-	kind: ActivityEventKind;
-	summary: string;
-	timestamp: string;
-	agent?: string;
-	rig?: string;
-	bead_id?: string;
-}
-
-// ---------------------------------------------------------------------------
 // Capabilities
 // ---------------------------------------------------------------------------
 
@@ -260,7 +191,6 @@ export interface CapabilitiesResult {
 		mail: boolean;
 		work: boolean;
 		convoys: boolean;
-		workflows: boolean;
 	};
 	available: boolean;
 	error: string | null;
