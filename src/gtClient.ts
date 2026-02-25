@@ -930,21 +930,53 @@ export class GtClient {
 			if (options?.parent) {
 				args.push('--parent', options.parent);
 			}
-			const output = await this.cachedExecBd(args);
-			const data = JSON.parse(output);
-			if (Array.isArray(data)) {
-				return data.map((b: any) => ({
-					id: b.id || '',
-					title: b.title || b.summary || b.id || '',
-					status: b.status || 'pending',
-					assignee: b.assignee,
-					issue_type: b.issue_type,
-					labels: Array.isArray(b.labels) ? b.labels : undefined,
-				}));
+
+			// Query town-level beads and all rig-level beads in parallel
+			const rigNames = await this.getRigNames();
+			const queries: Promise<string>[] = [this.cachedExecBd(args)];
+			for (const rig of rigNames) {
+				queries.push(this.cachedExecBd([...args, '--rig', rig]));
 			}
-			return [];
+
+			const results = await Promise.all(queries.map(q => q.catch(() => '[]')));
+			const seen = new Set<string>();
+			const beads: GtBead[] = [];
+
+			for (const output of results) {
+				try {
+					const data = JSON.parse(output);
+					if (Array.isArray(data)) {
+						for (const b of data) {
+							const id = b.id || '';
+							if (id && !seen.has(id)) {
+								seen.add(id);
+								beads.push({
+									id,
+									title: b.title || b.summary || id || '',
+									status: b.status || 'pending',
+									assignee: b.assignee,
+									issue_type: b.issue_type,
+									labels: Array.isArray(b.labels) ? b.labels : undefined,
+								});
+							}
+						}
+					}
+				} catch { /* skip unparseable result */ }
+			}
+
+			return beads;
 		} catch {
 			return this.listBeadsFallback();
+		}
+	}
+
+	/** Get rig names for multi-rig bead queries. */
+	private async getRigNames(): Promise<string[]> {
+		try {
+			const rigs = await this.getRigs();
+			return rigs.map(r => r.name).filter(Boolean);
+		} catch {
+			return [];
 		}
 	}
 
