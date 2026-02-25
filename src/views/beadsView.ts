@@ -78,11 +78,14 @@ export class BeadsTreeProvider implements vscode.TreeDataProvider<vscode.TreeIte
 		const system: GtBead[] = [];
 
 		for (const bead of beads) {
+			if (this._filterMode === 'active' && isCompletedBead(bead)) {
+				continue;
+			}
 			if (isSystemBead(bead)) {
 				system.push(bead);
 			} else if (bead.issue_type === 'epic') {
 				epics.push(bead);
-			} else if (this._filterMode === 'all' || !isCompletedBead(bead)) {
+			} else {
 				activeWork.push(bead);
 			}
 		}
