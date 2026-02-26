@@ -480,6 +480,65 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand('citadel.openAllAgentTerminals', () => terminalManager.openAllAgentTerminals()),
 		vscode.commands.registerCommand('citadel.refreshMayor', () => mayorProvider.refreshFromCli()),
 		vscode.commands.registerCommand('citadel.refreshHealth', () => healthProvider.refresh()),
+		vscode.commands.registerCommand('citadel.healthRestart', async (item: import('./views/healthView').HealthTierItem) => {
+			if (!item?.tier) { return; }
+			try {
+				switch (item.tier) {
+					case 'daemon': await client.restartDaemon(); break;
+					case 'dolt': await client.restartDolt(); break;
+					case 'deacon': await client.restartDeacon(); break;
+					default: return;
+				}
+				vscode.window.showInformationMessage(`Restarted ${item.label}`);
+				healthProvider.refresh();
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to restart ${item.label}: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.healthStop', async (item: import('./views/healthView').HealthTierItem) => {
+			if (!item?.tier) { return; }
+			try {
+				switch (item.tier) {
+					case 'daemon': await client.stopDaemon(); break;
+					case 'dolt': await client.stopDolt(); break;
+					case 'deacon': await client.stopDeacon(); break;
+					default: return;
+				}
+				vscode.window.showInformationMessage(`Stopped ${item.label}`);
+				healthProvider.refresh();
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to stop ${item.label}: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.healthStart', async (item: import('./views/healthView').HealthTierItem) => {
+			if (!item?.tier) { return; }
+			try {
+				switch (item.tier) {
+					case 'daemon': await client.startDaemon(); break;
+					case 'dolt': await client.startDolt(); break;
+					case 'deacon': await client.startDeacon(); break;
+					default: return;
+				}
+				vscode.window.showInformationMessage(`Started ${item.label}`);
+				healthProvider.refresh();
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to start ${item.label}: ${msg}`);
+			}
+		}),
+		vscode.commands.registerCommand('citadel.healthClearCrashLoops', async (item: import('./views/healthView').HealthTierItem) => {
+			if (!item?.tier) { return; }
+			try {
+				await client.clearCrashLoops();
+				vscode.window.showInformationMessage(`Cleared crash loops for ${item.label}`);
+				healthProvider.refresh();
+			} catch (err: unknown) {
+				const msg = err instanceof Error ? err.message : String(err);
+				vscode.window.showErrorMessage(`Failed to clear crash loops: ${msg}`);
+			}
+		}),
 	);
 
 	// --- Cross-panel wiring: terminal count → status bar ---

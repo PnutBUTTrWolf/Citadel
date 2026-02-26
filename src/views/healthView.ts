@@ -8,6 +8,51 @@ import * as path from 'path';
 import { GtClient, type DaemonHealth, type DoltHealth } from '../gtClient';
 import type { TierHealth } from '../cli/contracts';
 
+export type HealthTier = 'daemon' | 'dolt' | 'boot' | 'deacon';
+
+/**
+ * Custom TreeItem for health tier entries. Encodes the tier and health
+ * state into `contextValue` so that package.json menu contributions can
+ * show/hide context-menu actions per tier and state.
+ *
+ * contextValue values:
+ *   healthTierDaemonUp / healthTierDaemonDown
+ *   healthTierDoltUp / healthTierDoltDown
+ *   healthTierBootOk / healthTierBootCrash
+ *   healthTierDeaconOk / healthTierDeaconCrash
+ */
+export class HealthTierItem extends vscode.TreeItem {
+	constructor(
+		label: string,
+		public readonly tier: HealthTier,
+		public readonly tierHealth: TierHealth,
+		detail: string,
+		icon: vscode.ThemeIcon,
+	) {
+		super(label, vscode.TreeItemCollapsibleState.None);
+		this.description = detail;
+		this.iconPath = icon;
+		this.tooltip = `${label}: ${tierHealth}\n${detail}`;
+		this.contextValue = HealthTierItem.buildContextValue(tier, tierHealth);
+	}
+
+	private static buildContextValue(tier: HealthTier, health: TierHealth): string {
+		switch (tier) {
+			case 'daemon':
+			case 'dolt':
+				return health === 'down' ? `healthTier${cap(tier)}Down` : `healthTier${cap(tier)}Up`;
+			case 'boot':
+				return health === 'degraded' ? 'healthTierBootCrash' : 'healthTierBootOk';
+			case 'deacon':
+				return health === 'degraded' ? 'healthTierDeaconCrash' : 'healthTierDeaconOk';
+		}
+	}
+}
+
+function cap(s: string): string {
+	return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 export class HealthTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 	private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
@@ -57,7 +102,7 @@ export class HealthTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
 		const daemonDetail = health.running
 			? (health.pid ? `PID ${health.pid}` : 'running')
 			: 'not running';
-		items.push(this.makeTierItem('Daemon', daemonHealth, daemonDetail));
+		items.push(this.makeTierItem('Daemon', 'daemon', daemonHealth, daemonDetail));
 
 		// --- Tier: Dolt Database ---
 		const doltUp = dolt.port3306 || dolt.port3307;
@@ -74,7 +119,7 @@ export class HealthTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
 			doltDetail = 'not reachable';
 		}
 		const doltHealth: TierHealth = !doltUp ? 'down' : doltPartial ? 'degraded' : 'healthy';
-		items.push(this.makeTierItem('Dolt Database', doltHealth, doltDetail));
+		items.push(this.makeTierItem('Dolt Database', 'dolt', doltHealth, doltDetail));
 
 		// --- Tier: Boot Monitor ---
 		const otherCrashLoops = health.crashLoops.filter(cl => cl.agent !== 'deacon');
@@ -82,7 +127,7 @@ export class HealthTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
 		const bootDetail = otherCrashLoops.length > 0
 			? `${otherCrashLoops.length} crash loop(s)`
 			: 'OK';
-		items.push(this.makeTierItem('Boot Monitor', bootHealth, bootDetail));
+		items.push(this.makeTierItem('Boot Monitor', 'boot', bootHealth, bootDetail));
 
 		// --- Tier: Deacon ---
 		const deaconCrashLoop = health.crashLoops.find(cl => cl.agent === 'deacon');
@@ -92,7 +137,7 @@ export class HealthTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
 		const deaconDetail = deaconCrashLoop ? `crash loop (${deaconCrashLoop.restartCount}x)`
 			: health.staleAgentConfig ? 'stale agent config'
 				: 'OK';
-		items.push(this.makeTierItem('Deacon', deaconHealth, deaconDetail));
+		items.push(this.makeTierItem('Deacon', 'deacon', deaconHealth, deaconDetail));
 
 		// --- System summary ---
 		const sysItem = new vscode.TreeItem('System', vscode.TreeItemCollapsibleState.None);
@@ -118,12 +163,8 @@ export class HealthTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
 		return items;
 	}
 
-	private makeTierItem(label: string, health: TierHealth, detail: string): vscode.TreeItem {
-		const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
-		item.description = detail;
-		item.iconPath = HealthTreeProvider.getTierIcon(health);
-		item.tooltip = `${label}: ${health}\n${detail}`;
-		return item;
+	private makeTierItem(label: string, tier: HealthTier, health: TierHealth, detail: string): HealthTierItem {
+		return new HealthTierItem(label, tier, health, detail, HealthTreeProvider.getTierIcon(health));
 	}
 
 	private static getTierIcon(health: TierHealth): vscode.ThemeIcon {

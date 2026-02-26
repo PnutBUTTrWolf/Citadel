@@ -1104,6 +1104,21 @@ export class GtClient {
 		return issues;
 	}
 
+	async startDaemon(): Promise<void> {
+		try {
+			await this.exec(['daemon', 'start']);
+		} catch {
+			const health = await this.getDaemonHealth();
+			if (!health.running) {
+				throw new Error('daemon failed to start and is not running');
+			}
+		}
+	}
+
+	async stopDaemon(): Promise<void> {
+		await this.exec(['daemon', 'stop']);
+	}
+
 	async restartDaemon(): Promise<void> {
 		try { await this.exec(['daemon', 'stop']); } catch { /* may not be running */ }
 		try {
@@ -1117,6 +1132,19 @@ export class GtClient {
 				throw new Error('daemon failed to start and is not running');
 			}
 		}
+	}
+
+	async startDeacon(): Promise<void> {
+		await this.exec(['deacon', 'start']);
+	}
+
+	async stopDeacon(): Promise<void> {
+		await this.exec(['deacon', 'stop']);
+	}
+
+	async restartDeacon(): Promise<void> {
+		try { await this.exec(['deacon', 'stop']); } catch { /* may not be running */ }
+		await this.exec(['deacon', 'start']);
 	}
 
 	async clearCrashLoops(): Promise<void> {

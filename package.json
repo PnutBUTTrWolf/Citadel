@@ -336,6 +336,30 @@
         "title": "Citadel Status",
         "category": "Citadel",
         "icon": "$(flame)"
+      },
+      {
+        "command": "citadel.healthRestart",
+        "title": "Restart",
+        "category": "Citadel",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "citadel.healthStop",
+        "title": "Stop",
+        "category": "Citadel",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "citadel.healthStart",
+        "title": "Start",
+        "category": "Citadel",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "citadel.healthClearCrashLoops",
+        "title": "Clear Crash Loops",
+        "category": "Citadel",
+        "icon": "$(clear-all)"
       }
     ],
     "menus": {
@@ -511,6 +535,26 @@
           "command": "citadel.rejectMergeRequest",
           "when": "view == citadel.queue && viewItem =~ /^queueItem/",
           "group": "context"
+        },
+        {
+          "command": "citadel.healthRestart",
+          "when": "view == citadel.health && viewItem =~ /^healthTier(DaemonUp|DoltUp|DeaconOk|DeaconCrash)$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "citadel.healthStop",
+          "when": "view == citadel.health && viewItem =~ /^healthTier(DaemonUp|DoltUp|DeaconOk|DeaconCrash)$/",
+          "group": "context@1"
+        },
+        {
+          "command": "citadel.healthStart",
+          "when": "view == citadel.health && viewItem =~ /^healthTier(DaemonDown|DoltDown)$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "citadel.healthClearCrashLoops",
+          "when": "view == citadel.health && viewItem =~ /^healthTier(BootCrash|DeaconCrash)$/",
+          "group": "inline@2"
         }
       ],
       "commandPalette": [
@@ -597,6 +641,22 @@
         {
           "command": "citadel.statusBarClick",
           "when": "true"
+        },
+        {
+          "command": "citadel.healthRestart",
+          "when": "false"
+        },
+        {
+          "command": "citadel.healthStop",
+          "when": "false"
+        },
+        {
+          "command": "citadel.healthStart",
+          "when": "false"
+        },
+        {
+          "command": "citadel.healthClearCrashLoops",
+          "when": "false"
         }
       ]
     },
