@@ -177,6 +177,10 @@ export class TerminalManager {
 
 		vscode.window.onDidCloseTerminal((closed) => {
 			if (closed === terminal) {
+				// Guard: skip cleanup if this terminal was replaced (e.g., by markTerminalDone)
+				if (this.agentTerminals.get(agent.name) !== terminal) {
+					return;
+				}
 				// Remove the battlestation pane
 				const closingState = this.terminalStates.get(agent.name);
 				if (closingState?.paneId !== undefined) {
@@ -314,6 +318,10 @@ export class TerminalManager {
 
 		vscode.window.onDidCloseTerminal((closed) => {
 			if (closed === newTerminal) {
+				// Guard: skip cleanup if this terminal was replaced by a subsequent markTerminalDone
+				if (this.agentTerminals.get(agent.name) !== newTerminal) {
+					return;
+				}
 				const closingState = this.terminalStates.get(agent.name);
 				if (closingState?.paneId !== undefined) {
 					vscode.commands.executeCommand('battlestation.removePane', closingState.paneId);

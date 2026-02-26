@@ -147,7 +147,11 @@ export function activate(context: vscode.ExtensionContext): void {
 		}),
 		vscode.commands.registerCommand('citadel.openAgentTerminal', (item: { agent?: import('./gtClient').GtAgent }) => {
 			if (item?.agent) {
-				terminalManager.openAgentTerminal(item.agent);
+				if (item.agent.role === 'mayor') {
+					terminalManager.showMayorTerminal();
+				} else {
+					terminalManager.openAgentTerminal(item.agent);
+				}
 			}
 		}),
 		vscode.commands.registerCommand('citadel.reconnectTerminal', async (item?: { agent?: import('./gtClient').GtAgent }) => {
