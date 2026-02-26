@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { GtClient } from './gtClient';
 import { AgentsTreeProvider } from './views/agentsView';
 import { BeadsTreeProvider } from './views/beadsView';
@@ -348,18 +349,30 @@ export function activate(context: vscode.ExtensionContext): void {
 			}
 		}),
 		vscode.commands.registerCommand('citadel.runBootstrap', async () => {
-			const workspaceFolders = vscode.workspace.workspaceFolders;
 			let scriptPath: string | undefined;
 
-			if (workspaceFolders) {
-				for (const folder of workspaceFolders) {
-					const candidate = vscode.Uri.joinPath(folder.uri, 'scripts', 'setup-citadel.sh');
-					try {
-						await vscode.workspace.fs.stat(candidate);
-						scriptPath = candidate.fsPath;
-						break;
-					} catch {
-						// not found in this folder
+			// Look for the bundled script relative to the extension
+			const extPath = context.extensionPath;
+			const bundled = path.join(extPath, 'scripts', 'setup-gastown.sh');
+			try {
+				await vscode.workspace.fs.stat(vscode.Uri.file(bundled));
+				scriptPath = bundled;
+			} catch {
+				// not bundled — check workspace folders
+			}
+
+			if (!scriptPath) {
+				const workspaceFolders = vscode.workspace.workspaceFolders;
+				if (workspaceFolders) {
+					for (const folder of workspaceFolders) {
+						const candidate = vscode.Uri.joinPath(folder.uri, 'scripts', 'setup-gastown.sh');
+						try {
+							await vscode.workspace.fs.stat(candidate);
+							scriptPath = candidate.fsPath;
+							break;
+						} catch {
+							// not found in this folder
+						}
 					}
 				}
 			}
@@ -368,7 +381,7 @@ export function activate(context: vscode.ExtensionContext): void {
 				const picked = await vscode.window.showOpenDialog({
 					canSelectMany: false,
 					filters: { 'Shell Scripts': ['sh'] },
-					title: 'Locate setup-citadel.sh',
+					title: 'Locate setup-gastown.sh',
 				});
 				if (picked && picked.length > 0) {
 					scriptPath = picked[0].fsPath;
@@ -376,19 +389,19 @@ export function activate(context: vscode.ExtensionContext): void {
 			}
 
 			if (!scriptPath) {
-				vscode.window.showWarningMessage('Could not find scripts/setup-citadel.sh. Open the GasTownVS repo as a workspace folder, or locate the script manually.');
+				vscode.window.showWarningMessage('Could not find scripts/setup-gastown.sh. The script should be bundled with the extension or in a workspace folder.');
 				return;
 			}
 
 			const terminal = vscode.window.createTerminal({
-				name: '🔧 Citadel Bootstrap',
+				name: '🔧 Gastown Bootstrap',
 				iconPath: new vscode.ThemeIcon('wrench'),
 				color: new vscode.ThemeColor('terminal.ansiGreen'),
 			});
 
 			terminal.sendText(`bash "${scriptPath}"`);
 			terminal.show();
-			vscode.window.showInformationMessage('Running Citadel bootstrap setup…');
+			vscode.window.showInformationMessage('Running Gastown bootstrap setup…');
 		}),
 
 		// --- Commands: new features ---
