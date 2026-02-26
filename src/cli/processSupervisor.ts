@@ -29,7 +29,7 @@ const DEFAULT_SUPERVISOR_CONFIG: ProcessSupervisorConfig = {
 	defaultTimeout: DEFAULT_CLI_TIMEOUT,
 	maxConcurrency: 4,
 	circuitBreakerThreshold: 5,
-	circuitBreakerResetTime: 60_000,
+	circuitBreakerResetTime: 15_000,
 };
 
 /**

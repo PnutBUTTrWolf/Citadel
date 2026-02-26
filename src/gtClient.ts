@@ -120,7 +120,8 @@ export class GtClient {
 	private gtPath: string;
 	private bdPath: string;
 	private workspacePath: string;
-	private readonly supervisor: ProcessSupervisor;
+	private readonly gtSupervisor: ProcessSupervisor;
+	private readonly bdSupervisor: ProcessSupervisor;
 	private readonly cache = new SWRCache();
 
 	constructor() {
@@ -128,7 +129,8 @@ export class GtClient {
 		this.gtPath = resolveCommand(config.get<string>('gtPath', 'gt'));
 		this.bdPath = resolveCommand(config.get<string>('bdPath', 'bd'));
 		this.workspacePath = config.get<string>('workspacePath', '~/gt').replace('~', os.homedir());
-		this.supervisor = new ProcessSupervisor();
+		this.gtSupervisor = new ProcessSupervisor();
+		this.bdSupervisor = new ProcessSupervisor();
 	}
 
 	reload(): void {
@@ -140,7 +142,8 @@ export class GtClient {
 	}
 
 	dispose(): void {
-		this.supervisor.destroy();
+		this.gtSupervisor.destroy();
+		this.bdSupervisor.destroy();
 		this.cache.clear();
 	}
 
@@ -149,7 +152,7 @@ export class GtClient {
 	 * deduplicated, circuit-breaker protected).
 	 */
 	private async exec(args: string[]): Promise<string> {
-		const result = await this.supervisor.execute<unknown>({
+		const result = await this.gtSupervisor.execute<unknown>({
 			command: this.gtPath,
 			args,
 			cwd: this.workspacePath,
@@ -904,7 +907,7 @@ export class GtClient {
 	 * deduplicated, circuit-breaker protected).
 	 */
 	private async execBd(args: string[]): Promise<string> {
-		const result = await this.supervisor.execute<unknown>({
+		const result = await this.bdSupervisor.execute<unknown>({
 			command: this.bdPath,
 			args,
 			cwd: this.workspacePath,
