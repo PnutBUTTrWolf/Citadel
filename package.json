@@ -58,16 +58,9 @@
         },
         {
           "id": "citadel.health",
-          "name": "Health",
+          "name": "System Health",
           "icon": "$(pulse)",
-          "contextualTitle": "Citadel Health"
-        },
-        {
-          "id": "citadel.watchdog",
-          "name": "Watchdog",
-          "icon": "$(shield)",
-          "contextualTitle": "Citadel Watchdog",
-          "visibility": "collapsed"
+          "contextualTitle": "Citadel System Health"
         }
       ],
       "citadel-work": [
@@ -310,13 +303,7 @@
       },
       {
         "command": "citadel.refreshHealth",
-        "title": "Refresh Health",
-        "category": "Citadel",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "citadel.refreshWatchdog",
-        "title": "Refresh Watchdog",
+        "title": "Refresh System Health",
         "category": "Citadel",
         "icon": "$(refresh)"
       },
@@ -446,11 +433,6 @@
         {
           "command": "citadel.refreshHealth",
           "when": "view == citadel.health",
-          "group": "navigation"
-        },
-        {
-          "command": "citadel.refreshWatchdog",
-          "when": "view == citadel.watchdog",
           "group": "navigation"
         }
       ],

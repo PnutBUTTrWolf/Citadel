@@ -13,7 +13,6 @@ import { MayorTreeProvider } from './views/mayorView';
 import { MailTreeProvider } from './views/mailView';
 import { QueueTreeProvider } from './views/queueView';
 import { HealthTreeProvider } from './views/healthView';
-import { WatchdogTreeProvider } from './views/watchdogView';
 import { CitadelStatusBar } from './statusBar';
 import { TerminalManager } from './terminalManager';
 import { slingBead } from './commands/sling';
@@ -38,7 +37,6 @@ export function activate(context: vscode.ExtensionContext): void {
 	const mailProvider = new MailTreeProvider(client);
 	const queueProvider = new QueueTreeProvider(client);
 	const healthProvider = new HealthTreeProvider(client);
-	const watchdogProvider = new WatchdogTreeProvider(client);
 
 	// Agents: hero view with running-count badge
 	const agentsTreeView = vscode.window.createTreeView('citadel.agents', {
@@ -78,7 +76,6 @@ export function activate(context: vscode.ExtensionContext): void {
 	const healthTreeView = vscode.window.createTreeView('citadel.health', {
 		treeDataProvider: healthProvider,
 	});
-	vscode.window.registerTreeDataProvider('citadel.watchdog', watchdogProvider);
 
 	// --- Commands: existing ---
 	context.subscriptions.push(
@@ -483,7 +480,6 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand('citadel.openAllAgentTerminals', () => terminalManager.openAllAgentTerminals()),
 		vscode.commands.registerCommand('citadel.refreshMayor', () => mayorProvider.refreshFromCli()),
 		vscode.commands.registerCommand('citadel.refreshHealth', () => healthProvider.refresh()),
-		vscode.commands.registerCommand('citadel.refreshWatchdog', () => watchdogProvider.refresh()),
 	);
 
 	// --- Cross-panel wiring: terminal count → status bar ---
@@ -547,7 +543,7 @@ export function activate(context: vscode.ExtensionContext): void {
 			healthTreeView.dispose();
 			statusBar.dispose();
 			terminalManager.dispose();
-			watchdogProvider.dispose();
+			healthProvider.dispose();
 			client.dispose();
 		}
 	});

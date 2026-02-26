@@ -76,7 +76,6 @@ suite('Extension', () => {
 
 				// Health & diagnostics
 				'citadel.refreshHealth',
-				'citadel.refreshWatchdog',
 				'citadel.repairDaemon',
 				'citadel.daemonStatus',
 				'citadel.debugAgents',

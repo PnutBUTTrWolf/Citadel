@@ -4,13 +4,18 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { GtClient, type DaemonHealth, type DoltHealth } from '../gtClient';
+import type { TierHealth } from '../cli/contracts';
 
 export class HealthTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
 	private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+	private watchers: vscode.FileSystemWatcher[] = [];
 
-	constructor(private readonly client: GtClient) {}
+	constructor(private readonly client: GtClient) {
+		this.setupFileWatchers();
+	}
 
 	refresh(): void {
 		this._onDidChangeTreeData.fire();
@@ -45,39 +50,57 @@ export class HealthTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
 	): vscode.TreeItem[] {
 		const items: vscode.TreeItem[] = [];
 
-		// Daemon status
-		const daemonItem = new vscode.TreeItem('Daemon', vscode.TreeItemCollapsibleState.None);
-		daemonItem.description = health.running
+		// --- Tier: Daemon ---
+		const daemonHealth: TierHealth = !health.running ? 'down'
+			: health.staleHeartbeat ? 'degraded'
+				: 'healthy';
+		const daemonDetail = health.running
 			? (health.pid ? `PID ${health.pid}` : 'running')
-			: 'down';
-		daemonItem.iconPath = health.running
-			? new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'))
-			: new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
-		items.push(daemonItem);
+			: 'not running';
+		items.push(this.makeTierItem('Daemon', daemonHealth, daemonDetail));
 
-		// Dolt status — two servers: bd (3306) and gt (3307)
+		// --- Tier: Dolt Database ---
 		const doltUp = dolt.port3306 || dolt.port3307;
 		const doltFull = dolt.port3306 && dolt.port3307;
-		const doltItem = new vscode.TreeItem('Dolt', vscode.TreeItemCollapsibleState.None);
-		doltItem.description = doltFull
-			? (dolt.pid ? `PID ${dolt.pid}` : 'OK')
-			: doltUp
-				? `partial (${dolt.port3306 ? 'bd' : 'gt'} only)`
-				: 'down';
-		doltItem.iconPath = doltFull
-			? new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'))
-			: doltUp
-				? new vscode.ThemeIcon('warning', new vscode.ThemeColor('editorWarning.foreground'))
-				: new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
-		items.push(doltItem);
+		const doltPartial = doltUp && !doltFull;
+		let doltDetail: string;
+		if (doltFull) {
+			doltDetail = dolt.pid ? `PID ${dolt.pid}` : 'bd + gt OK';
+		} else if (doltPartial) {
+			const up = dolt.port3306 ? 'bd' : 'gt';
+			const down = dolt.port3306 ? 'gt' : 'bd';
+			doltDetail = `${up} OK, ${down} down`;
+		} else {
+			doltDetail = 'not reachable';
+		}
+		const doltHealth: TierHealth = !doltUp ? 'down' : doltPartial ? 'degraded' : 'healthy';
+		items.push(this.makeTierItem('Dolt Database', doltHealth, doltDetail));
 
-		// System summary
+		// --- Tier: Boot Monitor ---
+		const otherCrashLoops = health.crashLoops.filter(cl => cl.agent !== 'deacon');
+		const bootHealth: TierHealth = otherCrashLoops.length > 0 ? 'degraded' : 'healthy';
+		const bootDetail = otherCrashLoops.length > 0
+			? `${otherCrashLoops.length} crash loop(s)`
+			: 'OK';
+		items.push(this.makeTierItem('Boot Monitor', bootHealth, bootDetail));
+
+		// --- Tier: Deacon ---
+		const deaconCrashLoop = health.crashLoops.find(cl => cl.agent === 'deacon');
+		const deaconHealth: TierHealth = deaconCrashLoop ? 'degraded'
+			: health.staleAgentConfig ? 'degraded'
+				: 'healthy';
+		const deaconDetail = deaconCrashLoop ? `crash loop (${deaconCrashLoop.restartCount}x)`
+			: health.staleAgentConfig ? 'stale agent config'
+				: 'OK';
+		items.push(this.makeTierItem('Deacon', deaconHealth, deaconDetail));
+
+		// --- System summary ---
 		const sysItem = new vscode.TreeItem('System', vscode.TreeItemCollapsibleState.None);
 		sysItem.description = `${agentCount} agents, ${rigCount} rigs`;
 		sysItem.iconPath = new vscode.ThemeIcon('server');
 		items.push(sysItem);
 
-		// Issues warning
+		// --- Issues warning ---
 		if (issueCount > 0) {
 			const issueItem = new vscode.TreeItem(
 				`${issueCount} issue${issueCount > 1 ? 's' : ''} detected`,
@@ -92,17 +115,59 @@ export class HealthTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
 			items.push(issueItem);
 		}
 
-		// Crash loops
-		for (const cl of health.crashLoops) {
-			const clItem = new vscode.TreeItem(
-				`${cl.agent}: crash loop`,
-				vscode.TreeItemCollapsibleState.None,
-			);
-			clItem.description = `${cl.restartCount}x`;
-			clItem.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
-			items.push(clItem);
-		}
-
 		return items;
+	}
+
+	private makeTierItem(label: string, health: TierHealth, detail: string): vscode.TreeItem {
+		const item = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
+		item.description = detail;
+		item.iconPath = HealthTreeProvider.getTierIcon(health);
+		item.tooltip = `${label}: ${health}\n${detail}`;
+		return item;
+	}
+
+	private static getTierIcon(health: TierHealth): vscode.ThemeIcon {
+		switch (health) {
+			case 'healthy':
+				return new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'));
+			case 'degraded':
+				return new vscode.ThemeIcon('warning', new vscode.ThemeColor('editorWarning.foreground'));
+			case 'down':
+				return new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
+		}
+	}
+
+	private setupFileWatchers(): void {
+		const wsPath = this.client.getWorkspacePath();
+		const daemonDir = path.join(wsPath, 'daemon');
+
+		try {
+			const statePattern = new vscode.RelativePattern(
+				vscode.Uri.file(daemonDir), 'state.json',
+			);
+			const restartPattern = new vscode.RelativePattern(
+				vscode.Uri.file(daemonDir), 'restart_state.json',
+			);
+
+			const w1 = vscode.workspace.createFileSystemWatcher(statePattern);
+			const w2 = vscode.workspace.createFileSystemWatcher(restartPattern);
+
+			const onFileChange = () => this.refresh();
+			w1.onDidChange(onFileChange);
+			w1.onDidCreate(onFileChange);
+			w2.onDidChange(onFileChange);
+			w2.onDidCreate(onFileChange);
+
+			this.watchers.push(w1, w2);
+		} catch {
+			// fs watcher may fail if daemon dir doesn't exist yet
+		}
+	}
+
+	dispose(): void {
+		for (const w of this.watchers) {
+			w.dispose();
+		}
+		this.watchers = [];
 	}
 }
