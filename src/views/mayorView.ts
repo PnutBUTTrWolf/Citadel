@@ -10,7 +10,7 @@ export class MayorTreeProvider implements vscode.TreeDataProvider<vscode.TreeIte
 	private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
 	readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-	private _status: GtMayorStatus = { attached: false };
+	private _status: GtMayorStatus = { running: false, attached: false };
 
 	constructor(private readonly client: GtClient) {}
 
@@ -34,20 +34,30 @@ export class MayorTreeProvider implements vscode.TreeDataProvider<vscode.TreeIte
 	async getChildren(): Promise<vscode.TreeItem[]> {
 		const status = this._status;
 
-		const statusItem = new vscode.TreeItem(
-			status.attached ? 'Running' : 'Stopped',
-			vscode.TreeItemCollapsibleState.None,
-		);
-		statusItem.iconPath = status.attached
-			? new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'))
-			: new vscode.ThemeIcon('circle-outline', new vscode.ThemeColor('disabledForeground'));
+		let label: string;
+		let icon: vscode.ThemeIcon;
+		if (status.running && status.attached) {
+			label = 'Running (attached)';
+			icon = new vscode.ThemeIcon('pass', new vscode.ThemeColor('testing.iconPassed'));
+		} else if (status.running) {
+			label = 'Running (detached)';
+			icon = new vscode.ThemeIcon('debug-disconnect', new vscode.ThemeColor('charts.yellow'));
+		} else {
+			label = 'Stopped';
+			icon = new vscode.ThemeIcon('circle-outline', new vscode.ThemeColor('disabledForeground'));
+		}
+
+		const statusItem = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
+		statusItem.iconPath = icon;
 		statusItem.description = status.pid ? `PID ${status.pid}` : undefined;
-		if (status.attached) {
+		if (status.running) {
 			statusItem.command = {
 				command: 'citadel.showMayorTerminal',
 				title: 'Show Mayor Terminal',
 			};
-			statusItem.tooltip = 'Click to show mayor terminal';
+			statusItem.tooltip = status.attached
+				? 'Click to show mayor terminal'
+				: 'Click to attach and show mayor terminal';
 		}
 
 		const items: vscode.TreeItem[] = [statusItem];

@@ -96,7 +96,7 @@ export class MockGtClient {
 	async repairDaemon(): Promise<string[]> { return []; }
 
 	async getMayorStatus(): Promise<GtMayorStatus> {
-		return { attached: false };
+		return { running: false, attached: false };
 	}
 
 	async syncClaudeWrapper(): Promise<string | undefined> { return undefined; }

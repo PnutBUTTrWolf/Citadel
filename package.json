@@ -50,6 +50,12 @@
           "contextualTitle": "Citadel Agents"
         },
         {
+          "id": "citadel.mayor",
+          "name": "Mayor",
+          "icon": "$(account)",
+          "contextualTitle": "Citadel Mayor"
+        },
+        {
           "id": "citadel.rigs",
           "name": "Rigs & Hooks",
           "icon": "$(repo)",
@@ -87,12 +93,6 @@
           "name": "Convoys",
           "icon": "$(tasklist)",
           "contextualTitle": "Citadel Convoys"
-        },
-        {
-          "id": "citadel.mayor",
-          "name": "Mayor",
-          "icon": "$(account)",
-          "contextualTitle": "Citadel Mayor"
         }
       ]
     },

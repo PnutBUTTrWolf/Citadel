@@ -118,13 +118,13 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand('citadel.convoyShow', (convoyId?: string) => showConvoyDetails(client, convoyId)),
 		vscode.commands.registerCommand('citadel.attachMayor', async () => {
 			await terminalManager.openMayorTerminal();
-			mayorProvider.updateStatus({ attached: true });
+			mayorProvider.updateStatus({ running: true, attached: true });
 			statusBar.setMayorAttached(true);
 		}),
 		vscode.commands.registerCommand('citadel.detachMayor', async () => {
 			await detachMayor(client);
 			terminalManager.closeAgentTerminal('__mayor__');
-			mayorProvider.updateStatus({ attached: false });
+			mayorProvider.updateStatus({ running: true, attached: false });
 			statusBar.setMayorAttached(false);
 		}),
 		vscode.commands.registerCommand('citadel.showMayorTerminal', () => {
@@ -231,8 +231,8 @@ export function activate(context: vscode.ExtensionContext): void {
 				terminalManager.closeAgentTerminal(agentName);
 				if (agentRole === 'mayor') {
 					terminalManager.closeAgentTerminal('__mayor__');
-					mayorProvider.updateStatus({ attached: false });
-					statusBar.setMayorAttached(false);
+					mayorProvider.updateStatus({ running: false, attached: false });
+	statusBar.setMayorAttached(false);
 				}
 				vscode.window.showInformationMessage(`Killed agent "${agentName}"`);
 				agentsProvider.refresh();

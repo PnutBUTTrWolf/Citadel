@@ -77,6 +77,7 @@ export interface GtHook {
 }
 
 export interface GtMayorStatus {
+	running: boolean;
 	attached: boolean;
 	pid?: number;
 	uptime?: string;
@@ -586,6 +587,7 @@ export class GtClient {
 			const output = await this.cachedExec(['mayor', 'status', '--json']);
 			const data = JSON.parse(output);
 			return {
+				running: data.running ?? (data.attached || data.status !== 'stopped'),
 				attached: data.attached || data.status === 'attached',
 				pid: data.pid,
 				uptime: data.uptime,
@@ -598,12 +600,11 @@ export class GtClient {
 	private async getMayorStatusFallback(): Promise<GtMayorStatus> {
 		try {
 			const output = await this.exec(['mayor', 'status']);
-			const hasNegative = /not running|stopped|detached|inactive|not attached|no mayor/i.test(output);
-			const hasPositive = /attached|running|active/i.test(output);
-			const attached = hasPositive && !hasNegative;
-			return { attached };
+			const isRunning = /running|active/i.test(output) && !/not running/i.test(output);
+			const isAttached = /attached/i.test(output) && !/not attached|detached/i.test(output);
+			return { running: isRunning, attached: isAttached };
 		} catch {
-			return { attached: false };
+			return { running: false, attached: false };
 		}
 	}
 
