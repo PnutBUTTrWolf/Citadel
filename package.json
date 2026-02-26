@@ -380,16 +380,6 @@
           "group": "navigation"
         },
         {
-          "command": "citadel.runBootstrap",
-          "when": "view == citadel.agents",
-          "group": "navigation"
-        },
-        {
-          "command": "citadel.repairDaemon",
-          "when": "view == citadel.agents",
-          "group": "navigation"
-        },
-        {
           "command": "citadel.refreshBeads",
           "when": "view == citadel.beads",
           "group": "navigation"
@@ -456,6 +446,16 @@
         },
         {
           "command": "citadel.refreshHealth",
+          "when": "view == citadel.health",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.repairDaemon",
+          "when": "view == citadel.health",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.runBootstrap",
           "when": "view == citadel.health",
           "group": "navigation"
         }
