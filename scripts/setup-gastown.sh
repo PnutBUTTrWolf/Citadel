@@ -82,11 +82,19 @@ export PATH="${GOPATH:-$HOME/go}/bin:$PATH"
 # ---------------------------------------------------------------------------
 # 2. gt (Gastown CLI)
 # ---------------------------------------------------------------------------
+# Note: We clone and build locally instead of using 'go install ...@latest'
+# because the gastown go.mod contains replace directives, which Go disallows
+# for remote module installs.
 if command -v gt &>/dev/null; then
     ok "gt $(gt version 2>/dev/null || echo '(installed)')"
 else
     info "Installing gt CLI..."
-    go install github.com/steveyegge/gastown/cmd/gt@latest
+    GT_TMPDIR="$(mktemp -d)"
+    trap 'rm -rf "$GT_TMPDIR"' EXIT
+    git clone --depth 1 https://github.com/steveyegge/gastown.git "$GT_TMPDIR/gastown"
+    (cd "$GT_TMPDIR/gastown" && go build -o "${GOPATH:-$HOME/go}/bin/gt" ./cmd/gt)
+    rm -rf "$GT_TMPDIR"
+    trap - EXIT
     ok "gt installed"
 fi
 
@@ -153,7 +161,14 @@ else
     fi
 
     info "Installing bd CLI..."
-    go install github.com/steveyegge/beads/cmd/bd@latest
+    # Clone and build locally — same reason as gt: beads go.mod may contain
+    # replace directives that prevent 'go install ...@latest'.
+    BD_TMPDIR="$(mktemp -d)"
+    trap 'rm -rf "$BD_TMPDIR"' EXIT
+    git clone --depth 1 https://github.com/steveyegge/beads.git "$BD_TMPDIR/beads"
+    (cd "$BD_TMPDIR/beads" && go build -o "${GOPATH:-$HOME/go}/bin/bd" ./cmd/bd)
+    rm -rf "$BD_TMPDIR"
+    trap - EXIT
     ok "bd installed"
 fi
 
