@@ -35,7 +35,7 @@ vi.mock("./cli/processSupervisor", () => ({
   },
 }));
 
-import { GtClient, doltPortLabel, type DaemonHealth } from "./gtClient";
+import { GtClient, type DaemonHealth } from "./gtClient";
 
 /**
  * Access private static methods for testing pure business logic.
@@ -428,21 +428,6 @@ describe("GtClient", () => {
       expect(GtClient.isInfrastructureRole("polecat")).toBe(false);
       expect(GtClient.isInfrastructureRole("crew")).toBe(false);
       expect(GtClient.isInfrastructureRole("unknown")).toBe(false);
-    });
-  });
-
-  describe("doltPortLabel()", () => {
-    it("labels port 3306 as 'bd'", () => {
-      expect(doltPortLabel(3306)).toBe("bd");
-    });
-
-    it("labels port 3307 as 'gt'", () => {
-      expect(doltPortLabel(3307)).toBe("gt");
-    });
-
-    it("labels unknown ports as string number", () => {
-      expect(doltPortLabel(8080)).toBe("8080");
-      expect(doltPortLabel(0)).toBe("0");
     });
   });
 

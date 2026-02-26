@@ -99,21 +99,12 @@ export type DaemonIssue =
 	| { kind: 'stale-agent-config'; command: string }
 	| { kind: 'stale-heartbeat'; age: string };
 
-/** Port 3306: beads (bd) server. Port 3307: citadel (gt) server. */
-export const DOLT_PORT_BD = 3306;
-export const DOLT_PORT_GT = 3307;
+/** Dolt SQL server port (used by both gt and bd). */
+export const DOLT_PORT = 3307;
 
 export interface DoltHealth {
-	port3306: boolean;
-	port3307: boolean;
+	reachable: boolean;
 	pid?: number;
-}
-
-/** Human-readable label for a Dolt port. */
-export function doltPortLabel(port: number): string {
-	if (port === DOLT_PORT_BD) { return 'bd'; }
-	if (port === DOLT_PORT_GT) { return 'gt'; }
-	return String(port);
 }
 
 export class GtClient {
@@ -683,12 +674,11 @@ export class GtClient {
 	}
 
 	async getDoltHealth(): Promise<DoltHealth> {
-		const [port3306, port3307, pid] = await Promise.all([
-			this.isDoltRunning(3306),
-			this.isDoltRunning(3307),
+		const [reachable, pid] = await Promise.all([
+			this.isDoltRunning(DOLT_PORT),
 			this.findDoltPid(),
 		]);
-		return { port3306, port3307, pid };
+		return { reachable, pid };
 	}
 
 	async createConvoy(name: string, beadIds: string[], notify = true): Promise<string> {

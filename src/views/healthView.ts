@@ -105,20 +105,10 @@ export class HealthTreeProvider implements vscode.TreeDataProvider<vscode.TreeIt
 		items.push(this.makeTierItem('Daemon', 'daemon', daemonHealth, daemonDetail));
 
 		// --- Tier: Dolt Database ---
-		const doltUp = dolt.port3306 || dolt.port3307;
-		const doltFull = dolt.port3306 && dolt.port3307;
-		const doltPartial = doltUp && !doltFull;
-		let doltDetail: string;
-		if (doltFull) {
-			doltDetail = dolt.pid ? `PID ${dolt.pid}` : 'bd + gt OK';
-		} else if (doltPartial) {
-			const up = dolt.port3306 ? 'bd' : 'gt';
-			const down = dolt.port3306 ? 'gt' : 'bd';
-			doltDetail = `${up} OK, ${down} down`;
-		} else {
-			doltDetail = 'not reachable';
-		}
-		const doltHealth: TierHealth = !doltUp ? 'down' : doltPartial ? 'degraded' : 'healthy';
+		const doltDetail = dolt.reachable
+			? (dolt.pid ? `PID ${dolt.pid}` : 'running')
+			: 'not reachable';
+		const doltHealth: TierHealth = dolt.reachable ? 'healthy' : 'down';
 		items.push(this.makeTierItem('Dolt Database', 'dolt', doltHealth, doltDetail));
 
 		// --- Tier: Boot Monitor ---
