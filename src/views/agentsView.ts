@@ -104,7 +104,13 @@ export class AgentsTreeProvider implements vscode.TreeDataProvider<AgentsTreeEle
 			items.push(AgentTreeItem.detail(agent, `State: ${agent.polecatState}`, 'symbol-enum'));
 		}
 		if (agent.beadId) {
-			items.push(AgentTreeItem.detail(agent, `Bead: ${agent.beadId}`, 'circle-outline'));
+			const beadItem = AgentTreeItem.detail(agent, `Bead: ${agent.beadId}`, 'circle-outline');
+			beadItem.command = {
+				command: 'citadel.showBead',
+				title: 'Show Bead Details',
+				arguments: [{ bead: { id: agent.beadId } }],
+			};
+			items.push(beadItem);
 		}
 		if (agent.address) {
 			items.push(AgentTreeItem.detail(agent, `Address: ${agent.address}`, 'symbol-reference'));
