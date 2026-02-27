@@ -626,14 +626,14 @@ export function activate(context: vscode.ExtensionContext): void {
 
 	statusBar.start();
 
-	// First-run: auto-open the Work panel in the secondary sidebar so new users see it
-	const hasShownWorkPanel = context.globalState.get<boolean>('citadel.workPanelShown');
-	if (!hasShownWorkPanel) {
-		// Focus a view in the citadel-work container to reveal the secondary sidebar
-		vscode.commands.executeCommand('citadel.beads.focus').then(() => {
-			context.globalState.update('citadel.workPanelShown', true);
-		});
-	}
+	// Force-show the Work panel whenever the Citadel panel becomes visible.
+	// This ensures clicking the citadel icon always reveals the secondary sidebar
+	// work panel, matching the citadel panel's force-show behavior.
+	agentsTreeView.onDidChangeVisibility(e => {
+		if (e.visible) {
+			vscode.commands.executeCommand('citadel.beads.focus');
+		}
+	});
 
 	client.syncClaudeWrapper().catch(err =>
 		console.error('[Citadel] initial claude wrapper sync failed:', err));
