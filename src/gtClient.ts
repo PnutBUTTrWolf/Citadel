@@ -486,9 +486,13 @@ export class GtClient {
 		let highPriorityIssues = 0;
 		for (const b of beads) {
 			if (b.status === 'escalated') { escalationCount++; }
-			// Skip infrastructure beads, wisps, and convoy trackers
+			// Skip infrastructure beads, wisps, convoy trackers, molecules,
+			// and rig/polecat/refinery/witness registration beads
 			if (b.id.includes('wisp') || b.id.includes('-cv-') ||
-				b.id === 'hq-deacon' || b.id === 'hq-mayor') { continue; }
+				b.id.includes('-mol-') || b.id.includes('-polecat-') ||
+				b.id.includes('-refinery') || b.id.includes('-witness') ||
+				b.id.startsWith('hq-deacon') || b.id.startsWith('hq-mayor') ||
+				b.id.includes('-rig-')) { continue; }
 			if (b.priority !== undefined && (b.priority === 1 || b.priority === 2)) { highPriorityIssues++; }
 		}
 
