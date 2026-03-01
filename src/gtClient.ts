@@ -463,7 +463,7 @@ export class GtClient {
 		const [agents, rigs, beads, convoys] = await Promise.all([
 			this.getAgents().catch(() => [] as GtAgent[]),
 			this.getRigs().catch(() => [] as GtRig[]),
-			this.listBeads({ all: true }).catch(() => [] as GtBead[]),
+			this.listBeads({ status: 'open' }).catch(() => [] as GtBead[]),
 			this.getConvoys().catch(() => [] as GtConvoy[]),
 		]);
 
