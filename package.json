@@ -44,6 +44,12 @@
     "views": {
       "citadel": [
         {
+          "id": "citadel.summary",
+          "name": "Summary",
+          "icon": "$(dashboard)",
+          "contextualTitle": "Citadel Summary"
+        },
+        {
           "id": "citadel.agents",
           "name": "Agents",
           "icon": "$(person)",
@@ -97,6 +103,12 @@
       ]
     },
     "commands": [
+      {
+        "command": "citadel.refreshSummary",
+        "title": "Refresh Summary",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
       {
         "command": "citadel.refreshAgents",
         "title": "Refresh Agents",
@@ -364,6 +376,11 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "citadel.refreshSummary",
+          "when": "view == citadel.summary",
+          "group": "navigation"
+        },
         {
           "command": "citadel.refreshAgents",
           "when": "view == citadel.agents",

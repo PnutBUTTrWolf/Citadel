@@ -14,6 +14,7 @@ import { MayorTreeProvider } from './views/mayorView';
 import { MailTreeProvider } from './views/mailView';
 import { QueueTreeProvider } from './views/queueView';
 import { HealthTreeProvider } from './views/healthView';
+import { SummaryTreeProvider } from './views/summaryView';
 import { CitadelStatusBar } from './statusBar';
 import { TerminalManager } from './terminalManager';
 import { slingBead } from './commands/sling';
@@ -30,6 +31,7 @@ export function activate(context: vscode.ExtensionContext): void {
 	const statusBar = new CitadelStatusBar(client);
 
 	// --- Tree data providers ---
+	const summaryProvider = new SummaryTreeProvider(client);
 	const agentsProvider = new AgentsTreeProvider(client);
 	const beadsProvider = new BeadsTreeProvider(client);
 	const convoysProvider = new ConvoysTreeProvider(client);
@@ -38,6 +40,16 @@ export function activate(context: vscode.ExtensionContext): void {
 	const mailProvider = new MailTreeProvider(client);
 	const queueProvider = new QueueTreeProvider(client);
 	const healthProvider = new HealthTreeProvider(client);
+
+	// Summary: at-a-glance stats and alerts
+	const summaryTreeView = vscode.window.createTreeView('citadel.summary', {
+		treeDataProvider: summaryProvider,
+	});
+	summaryProvider.onHasAlertsChanged = (hasAlerts) => {
+		summaryTreeView.badge = hasAlerts
+			? { value: 1, tooltip: 'Alerts need attention' }
+			: undefined;
+	};
 
 	// Agents: hero view with running-count badge
 	const agentsTreeView = vscode.window.createTreeView('citadel.agents', {
@@ -80,6 +92,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
 	// --- Commands: existing ---
 	context.subscriptions.push(
+		vscode.commands.registerCommand('citadel.refreshSummary', () => {
+			summaryProvider.refresh();
+		}),
 		vscode.commands.registerCommand('citadel.refreshAgents', () => {
 			agentsProvider.refresh();
 			statusBar.refresh();
@@ -597,6 +612,7 @@ export function activate(context: vscode.ExtensionContext): void {
 		if (refreshTick % 2 === 0) {
 			mailProvider.refresh();
 			rigsProvider.refresh();
+			if (summaryTreeView.visible) { summaryProvider.refresh(); }
 			if (mayorTreeView.visible) { mayorProvider.refreshFromCli(); }
 			if (queueTreeView.visible) { queueProvider.refresh(); }
 		}
@@ -610,6 +626,7 @@ export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push({
 		dispose: () => {
 			clearInterval(autoRefresh);
+			summaryTreeView.dispose();
 			agentsTreeView.dispose();
 			beadsTreeView.dispose();
 			convoysTreeView.dispose();

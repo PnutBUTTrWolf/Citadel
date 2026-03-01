@@ -53,6 +53,26 @@ export interface GtBead {
 	assignee?: string;
 	issue_type?: string;
 	labels?: string[];
+	priority?: number;
+}
+
+export interface DashboardSummary {
+	// Stats
+	polecatCount: number;
+	hookCount: number;
+	issueCount: number;
+	convoyCount: number;
+	escalationCount: number;
+
+	// Alerts
+	stuckPolecats: number;
+	staleHooks: number;
+	unackedEscalations: number;
+	deadSessions: number;
+	highPriorityIssues: number;
+
+	// Computed
+	hasAlerts: boolean;
 }
 
 export interface BeadListOptions {
@@ -437,6 +457,54 @@ export class GtClient {
 	async getInfrastructureAgents(): Promise<GtAgent[]> {
 		const all = await this.getAgents();
 		return all.filter(a => GtClient.INFRASTRUCTURE_ROLES.has(a.role));
+	}
+
+	async getSummary(): Promise<DashboardSummary> {
+		const [agents, rigs, beads, convoys] = await Promise.all([
+			this.getAgents().catch(() => [] as GtAgent[]),
+			this.getRigs().catch(() => [] as GtRig[]),
+			this.listBeads({ all: true }).catch(() => [] as GtBead[]),
+			this.getConvoys().catch(() => [] as GtConvoy[]),
+		]);
+
+		const workers = agents.filter(a => !GtClient.isInfrastructureRole(a.role));
+		const hooks = rigs.flatMap(r => r.hooks);
+
+		let stuckPolecats = 0;
+		let deadSessions = 0;
+		for (const a of workers) {
+			if (a.displayStatus === 'stuck' || a.polecatState === 'stuck') { stuckPolecats++; }
+			if (a.displayStatus === 'dead') { deadSessions++; }
+		}
+
+		let staleHooks = 0;
+		for (const h of hooks) {
+			if (h.status === 'stale') { staleHooks++; }
+		}
+
+		let escalationCount = 0;
+		let highPriorityIssues = 0;
+		for (const b of beads) {
+			if (b.status === 'escalated') { escalationCount++; }
+			if (b.priority !== undefined && (b.priority === 1 || b.priority === 2)) { highPriorityIssues++; }
+		}
+
+		const hasAlerts = stuckPolecats > 0 || staleHooks > 0 ||
+			escalationCount > 0 || deadSessions > 0 || highPriorityIssues > 0;
+
+		return {
+			polecatCount: workers.length,
+			hookCount: hooks.length,
+			issueCount: beads.length,
+			convoyCount: convoys.length,
+			escalationCount,
+			stuckPolecats,
+			staleHooks,
+			unackedEscalations: escalationCount,
+			deadSessions,
+			highPriorityIssues,
+			hasAlerts,
+		};
 	}
 
 	async getConvoys(): Promise<GtConvoy[]> {
@@ -951,6 +1019,7 @@ export class GtClient {
 									assignee: b.assignee,
 									issue_type: b.issue_type,
 									labels: Array.isArray(b.labels) ? b.labels : undefined,
+									priority: typeof b.priority === 'number' ? b.priority : undefined,
 								});
 							}
 						}
