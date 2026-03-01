@@ -77,10 +77,10 @@
       ],
       "citadel-work": [
         {
-          "id": "citadel.mail",
-          "name": "Mail",
-          "icon": "$(mail)",
-          "contextualTitle": "Citadel Mail"
+          "id": "citadel.activity",
+          "name": "Activity",
+          "icon": "$(history)",
+          "contextualTitle": "Citadel Activity"
         },
         {
           "id": "citadel.queue",
@@ -95,16 +95,17 @@
           "contextualTitle": "Citadel Beads"
         },
         {
-          "id": "citadel.activity",
-          "name": "Activity",
-          "icon": "$(history)",
-          "contextualTitle": "Citadel Activity"
-        },
-        {
           "id": "citadel.convoys",
           "name": "Convoys",
           "icon": "$(tasklist)",
           "contextualTitle": "Citadel Convoys"
+        },
+        {
+          "id": "citadel.mail",
+          "name": "Mail",
+          "icon": "$(mail)",
+          "contextualTitle": "Citadel Mail",
+          "visibility": "collapsed"
         }
       ]
     },
