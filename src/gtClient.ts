@@ -1357,6 +1357,58 @@ export class GtClient {
 		return this.gtPath;
 	}
 
+	// ---- Activity feed (.events.jsonl) ------------------------------------------
+
+	/**
+	 * Read recent activity events from the workspace .events.jsonl file.
+	 * Parses each line as JSON, assigns a category, and returns newest-first.
+	 */
+	getActivityEvents(limit: number = 100): import('./cli/contracts').ActivityEvent[] {
+		const eventsPath = path.join(this.workspacePath, '.events.jsonl');
+		if (!fs.existsSync(eventsPath)) { return []; }
+
+		try {
+			const content = fs.readFileSync(eventsPath, 'utf-8');
+			const lines = content.split('\n').filter(l => l.trim());
+			const events: import('./cli/contracts').ActivityEvent[] = [];
+
+			for (const line of lines) {
+				try {
+					const raw = JSON.parse(line);
+					events.push({
+						ts: raw.ts ?? '',
+						source: raw.source ?? '',
+						type: raw.type ?? '',
+						actor: raw.actor ?? '',
+						payload: raw.payload ?? {},
+						visibility: raw.visibility,
+						category: GtClient.categorizeEvent(raw.type),
+					});
+				} catch { /* skip malformed lines */ }
+			}
+
+			// Return newest first, limited
+			return events.reverse().slice(0, limit);
+		} catch { return []; }
+	}
+
+	private static categorizeEvent(type: string): import('./cli/contracts').ActivityCategory {
+		switch (type) {
+			case 'spawn':
+			case 'session_death':
+			case 'handoff':
+				return 'agent';
+			case 'sling':
+			case 'hook':
+			case 'completion':
+				return 'work';
+			case 'mail':
+				return 'comms';
+			default:
+				return 'system';
+		}
+	}
+
 	// ---- Mail (gt CLI) --------------------------------------------------------
 
 	/**

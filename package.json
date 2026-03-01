@@ -95,6 +95,12 @@
           "contextualTitle": "Citadel Beads"
         },
         {
+          "id": "citadel.activity",
+          "name": "Activity",
+          "icon": "$(history)",
+          "contextualTitle": "Citadel Activity"
+        },
+        {
           "id": "citadel.convoys",
           "name": "Convoys",
           "icon": "$(tasklist)",
@@ -372,6 +378,18 @@
         "title": "Clear Crash Loops",
         "category": "Citadel",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "citadel.refreshActivity",
+        "title": "Refresh Activity",
+        "category": "Citadel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "citadel.filterActivity",
+        "title": "Filter Activity",
+        "category": "Citadel",
+        "icon": "$(filter)"
       }
     ],
     "menus": {
@@ -459,6 +477,16 @@
         {
           "command": "citadel.attachMayor",
           "when": "view == citadel.mayor",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.refreshActivity",
+          "when": "view == citadel.activity",
+          "group": "navigation"
+        },
+        {
+          "command": "citadel.filterActivity",
+          "when": "view == citadel.activity",
           "group": "navigation"
         },
         {
@@ -657,6 +685,14 @@
         },
         {
           "command": "citadel.statusBarClick",
+          "when": "true"
+        },
+        {
+          "command": "citadel.refreshActivity",
+          "when": "true"
+        },
+        {
+          "command": "citadel.filterActivity",
           "when": "true"
         },
         {

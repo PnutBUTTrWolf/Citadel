@@ -15,6 +15,7 @@ import { MailTreeProvider } from './views/mailView';
 import { QueueTreeProvider } from './views/queueView';
 import { HealthTreeProvider } from './views/healthView';
 import { SummaryTreeProvider } from './views/summaryView';
+import { ActivityTreeProvider } from './views/activityView';
 import { CitadelStatusBar } from './statusBar';
 import { TerminalManager } from './terminalManager';
 import { slingBead } from './commands/sling';
@@ -40,6 +41,7 @@ export function activate(context: vscode.ExtensionContext): void {
 	const mailProvider = new MailTreeProvider(client);
 	const queueProvider = new QueueTreeProvider(client);
 	const healthProvider = new HealthTreeProvider(client);
+	const activityProvider = new ActivityTreeProvider(client);
 
 	// Summary: at-a-glance stats and alerts
 	const summaryTreeView = vscode.window.createTreeView('citadel.summary', {
@@ -88,6 +90,9 @@ export function activate(context: vscode.ExtensionContext): void {
 	});
 	const healthTreeView = vscode.window.createTreeView('citadel.health', {
 		treeDataProvider: healthProvider,
+	});
+	const activityTreeView = vscode.window.createTreeView('citadel.activity', {
+		treeDataProvider: activityProvider,
 	});
 
 	// --- Commands: existing ---
@@ -511,6 +516,8 @@ export function activate(context: vscode.ExtensionContext): void {
 		}),
 		vscode.commands.registerCommand('citadel.openAllAgentTerminals', () => terminalManager.openAllAgentTerminals()),
 		vscode.commands.registerCommand('citadel.refreshMayor', () => mayorProvider.refreshFromCli()),
+		vscode.commands.registerCommand('citadel.refreshActivity', () => activityProvider.refresh()),
+		vscode.commands.registerCommand('citadel.filterActivity', () => activityProvider.cycleFilter()),
 		vscode.commands.registerCommand('citadel.refreshHealth', () => healthProvider.refresh()),
 		vscode.commands.registerCommand('citadel.healthRestart', async (item: import('./views/healthView').HealthTierItem) => {
 			if (!item?.tier) { return; }
@@ -615,6 +622,7 @@ export function activate(context: vscode.ExtensionContext): void {
 			if (summaryTreeView.visible) { summaryProvider.refresh(); }
 			if (mayorTreeView.visible) { mayorProvider.refreshFromCli(); }
 			if (queueTreeView.visible) { queueProvider.refresh(); }
+			if (activityTreeView.visible) { activityProvider.refresh(); }
 		}
 
 		// Slowest tier: health refreshes every 3rd tick (~15s)
@@ -634,6 +642,7 @@ export function activate(context: vscode.ExtensionContext): void {
 			mailTreeView.dispose();
 			queueTreeView.dispose();
 			healthTreeView.dispose();
+			activityTreeView.dispose();
 			statusBar.dispose();
 			terminalManager.dispose();
 			healthProvider.dispose();

@@ -164,6 +164,22 @@ export interface GtMergeQueueItem {
 }
 
 // ---------------------------------------------------------------------------
+// Activity feed (.events.jsonl)
+// ---------------------------------------------------------------------------
+
+export type ActivityCategory = 'agent' | 'work' | 'comms' | 'system';
+
+export interface ActivityEvent {
+	ts: string;
+	source: string;
+	type: string;
+	actor: string;
+	payload: Record<string, unknown>;
+	visibility?: string;
+	category: ActivityCategory;
+}
+
+// ---------------------------------------------------------------------------
 // Health / Watchdog
 // ---------------------------------------------------------------------------
 
