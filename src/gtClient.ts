@@ -486,6 +486,9 @@ export class GtClient {
 		let highPriorityIssues = 0;
 		for (const b of beads) {
 			if (b.status === 'escalated') { escalationCount++; }
+			// Skip infrastructure beads, wisps, and convoy trackers
+			if (b.id.includes('wisp') || b.id.includes('-cv-') ||
+				b.id === 'hq-deacon' || b.id === 'hq-mayor') { continue; }
 			if (b.priority !== undefined && (b.priority === 1 || b.priority === 2)) { highPriorityIssues++; }
 		}
 
